@@ -114,6 +114,9 @@ const [getCompanies] = useGetCompaniesMutation();
 const [companiesOptions, setCompaniesOptions] = useState([])
 const [companies, setCompanies] = useState([])
 
+const [year, setYear] = useState(2022)
+const [dashboardDate, setDashboardDate] = useState(new Date())
+
 
 
 
@@ -408,8 +411,11 @@ const exportAll = () => {
   const headerBacklogPercentile = GetHeaderProjectsBacklogPercentile()
   const bodyBacklogPercentile = GetBodyProjectsBacklogPercentile()
    
- 
+  const ScheduleCountHeader = ["Future Scheduling"]
   const bodyScheduleCountFWCalc = returnProjectMilestonesForScheduleCountFWCalc()
+
+  const headerBacklog = ["Backlog"]
+  const bodyBacklog = returnProjectMilestonesForBacklogCalc()
 
   const lobs = projects.map(x=>x.lineOfBusiness.id)
   const uniqueLobs = [...new Set(lobs)];
@@ -442,6 +448,9 @@ const exportAll = () => {
       excel.push(element)
     });
 
+    excel.push(insertEmptyLine())
+    excel.push(insertEmptyLine())
+
 
     excel.push(headerCycleTimePercentile)
 
@@ -461,6 +470,15 @@ const exportAll = () => {
     excel.push(insertEmptyLine())
     excel.push(insertEmptyLine())
 
+    excel.push(headerBacklog)
+
+    bodyBacklog[i].forEach(element => {
+      excel.push(element)
+    });
+
+    excel.push(insertEmptyLine())
+    excel.push(insertEmptyLine())
+
     excel.push(headerBacklogPercentile)
 
     bodyBacklogPercentile[i].forEach(element => {
@@ -470,6 +488,8 @@ const exportAll = () => {
     excel.push(insertEmptyLine())
     excel.push(insertEmptyLine())
 
+
+    excel.push(ScheduleCountHeader)
     excel.push(GetHeaderFW())
 
     bodyScheduleCountFWCalc[i].forEach(element => {
@@ -641,16 +661,16 @@ const returnProjectExportListWithCalc =  () =>{
       x.lineOfBusiness.milestones.forEach((element,index) => {
         if(index ==0){
           const milestone = x.projectMilestones.find(x=>x.name == element.name)
-          const contractDate = x.opportunity.contractSignatureDate
+          const contractDate = x.contractSignatureDate
           if(milestone && milestone.dateActual){
             project.push( subtractTwoDates(contractDate,milestone.dateActual))
           }else{
             project.push("")
           }
         }
-        else if(index < x.lineOfBusiness.milestones.length-1){
-        const milestone1 = x.projectMilestones.find(x=>x.name == element.name)
-        const milestone2 = x.projectMilestones.find(x=>x.name == x.lineOfBusiness.milestones[index+1].name)
+        else if(index != x.lineOfBusiness.milestones.length-1){
+        const milestone1 = x.projectMilestones.find(y=>y.name == element.name)
+        const milestone2 = x.projectMilestones.find(y=>y.name == x.lineOfBusiness.milestones[index+1].name)
         if(milestone1 && milestone2 && milestone1.dateActual && milestone2.dateActual){
           project.push( subtractTwoDates(milestone1.dateActual,milestone2.dateActual))
         }else{
@@ -670,7 +690,7 @@ const returnProjectExportListWithCalc =  () =>{
 
       x.lineOfBusiness.milestones.forEach(element => {
         const milestone = x.projectMilestones.find(x=>x.name == element.name)
-        if(milestone && milestone.dateScheduled>Date.now){
+        if(milestone && !milestone.dateActual  && milestone.dateScheduled>dashboardDate){
           project.push( calculateFW(milestone.dateScheduled))
         }else{
           project.push("")
@@ -680,7 +700,7 @@ const returnProjectExportListWithCalc =  () =>{
       x.lineOfBusiness.milestones.forEach(element => {
         const milestone = x.projectMilestones.find(x=>x.name == element.name)
         if(milestone && !milestone.dateActual){
-          project.push( subtractTwoDates(Date.now,milestone.dateScheduled))
+          project.push( subtractTwoDates(milestone.dateScheduled,dashboardDate))
         }else{
           project.push("")
         }
@@ -786,7 +806,7 @@ const returnProjectMilestonesForScheduleCountFWCalc = () =>{
         project[i].push(element.name)
         project[i].push(0)
         for (let index = 1; index < 53; index++) {
-          project[i].push(projectsList.filter(x=>x.projectMilestones.find(y=>y.name == element.name) && x.projectMilestones.find(y=>y.name == element.name).dateScheduled>Date.now ? calculateFW(x.projectMilestones.find(y=>y.name == element.name).dateScheduled)==index : false).length)
+          project[i].push(projectsList.filter(x=>x.projectMilestones.find(y=>y.name == element.name) && !x.projectMilestones.find(y=>y.name == element.name).dateActual && x.projectMilestones.find(y=>y.name == element.name).dateScheduled>dashboardDate ? calculateFW(x.projectMilestones.find(y=>y.name == element.name).dateScheduled)==index && calculateFY(x.projectMilestones.find(y=>y.name == element.name).dateScheduled)==year : false).length)
         }
        // }
       });
@@ -828,14 +848,17 @@ const exportClickWithFW =  () => {
 
 const GetHeaderFW = () =>{
   const header = ["Type/FW"]
-  for (let index = 1; index < 54; index++) {
-    if(index==1)
-    {
-      header.push("LY")
-    }else{
+  header.push("LY")
+  for (let index = 1; index < 53; index++) {
+    // if(index==1)
+    // {
+    //   header.push("LY")
+    // }else{
     header.push(`FW${index}`)
-    }
+   // }
   }
+  header.push("NY")
+
   return header
 }
 
@@ -853,13 +876,13 @@ const returnProjectMilestonesForFWCalc = () =>{
       projectsList[0].lineOfBusiness.milestones.forEach((element,i)=> {
        // const milestone = x.projectMilestones.find(x=>x.name == element.name)
        // if(milestone){
-        console.log(element)
         project.push([])
         project[i].push(element.name)
-        project[i].push(0)
+        project[i].push(projectsList.filter(x=>x.projectMilestones.find(y=>y.name == element.name) && x.projectMilestones.find(y=>y.name == element.name).dateActual!= null? calculateFY(x.projectMilestones.find(y=>y.name == element.name).dateActual)<year : false).length)
         for (let index = 1; index < 53; index++) {
-          project[i].push(projectsList.filter(x=>x.projectMilestones.find(y=>y.name == element.name)? calculateFW(x.projectMilestones.find(y=>y.name == element.name).dateActual)==index : false).length)
+          project[i].push(projectsList.filter(x=>x.projectMilestones.find(y=>y.name == element.name) && x.projectMilestones.find(y=>y.name == element.name).dateActual!= null? calculateFW(x.projectMilestones.find(y=>y.name == element.name).dateActual)==index && calculateFY(x.projectMilestones.find(y=>y.name == element.name).dateActual)==year : false).length)
         }
+        project[i].push(projectsList.filter(x=>x.projectMilestones.find(y=>y.name == element.name) && x.projectMilestones.find(y=>y.name == element.name).dateActual!= null? calculateFY(x.projectMilestones.find(y=>y.name == element.name).dateActual)>year : false).length)
        // }
       });
 
@@ -899,14 +922,14 @@ const exportClickWithFM =  () => {
 
 
 const GetHeaderFM = () =>{
-  const header = ["Type/FW"]
-  for (let index = 0; index < 13; index++) {
-    if(index==0)
-    {
-      header.push("LY")
-    }else{
+  const header = ["Type/FM"]
+  for (let index = 1; index < 13; index++) {
+    // if(index==0)
+    // {
+    //   header.push("LY")
+    // }else{
     header.push(`M${index}`)
-    }
+    //}
   }
   return header
 }
@@ -927,12 +950,76 @@ const returnProjectMilestonesForFMCalc = () =>{
        // if(milestone){
         project.push([])
         project[i].push(element.name)
-        project[i].push(0)
-        for (let index = 1; index < 12; index++) {
-          project[i].push(projectsList.filter(x=> x.projectMilestones.find(y=>y.name == element.name) ? (x=>calculateFM(x.projectMilestones.find(y=>y.name == element.name).dateActual)==index) : false).length)
+       // project[i].push(0)
+        for (let index = 1; index < 13; index++) {
+          project[i].push(projectsList.filter(x=> x.projectMilestones.find(y=>y.name == element.name) && x.projectMilestones.find(y=>y.name == element.name).dateActual!= null ? calculateFM(x.projectMilestones.find(y=>y.name == element.name).dateActual)==index && calculateFY(x.projectMilestones.find(y=>y.name == element.name).dateActual)==year : false).length)
         }
       //  }
       });
+
+    
+  
+    projectsExportList.push(project)
+  })
+ 
+ 
+  return projectsExportList
+}
+
+
+////////////////////////
+
+
+const exportClickWithFWBackLog =  () => {
+  setActionLoading(true)
+  showLoadingMessage('loading...')
+   
+ 
+  const projectMilestonesForCalc = returnProjectMilestonesForBacklogCalc()
+ 
+  projectMilestonesForCalc.forEach((element,index) => {
+    downloadExcel({
+      fileName: "Projects-Export-Backlog-Calculation",
+      sheet: "Projects",
+      tablePayload: {
+        header: ["Backlog"],
+        // accept two different data structures
+        body: element
+      }
+    });
+  });
+  showMessage('Reports downloaded successfully!')
+  setActionLoading(false)
+}
+
+
+
+const returnProjectMilestonesForBacklogCalc = () =>{
+  const lobs = projects.map(x=>x.lineOfBusiness.id)
+  const uniqueLobs = [...new Set(lobs)];
+
+  const projectsExportList = [];
+  
+  uniqueLobs.forEach(x=>{
+    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==x)]
+
+    
+      const project =[]
+      project.push(["Not started",projectsList.filter(x=> x.status==0).length ])
+      projectsList[0].lineOfBusiness.milestones.forEach((element,i)=> {
+       // const milestone = x.projectMilestones.find(x=>x.name == element.name)
+       // if(milestone){
+        if(i< projectsList[0].lineOfBusiness.milestones.length-1){
+        project.push([])
+        project[i+1].push(element.name)
+        project[i+1].push(projectsList.filter(x=> x.projectMilestones.find(y=>y.name == element.name) ? (x.projectMilestones.find(y=>y.name == element.name).status==1) : false).length)
+        }
+      //  }
+      });
+
+      project.push(["Completed",projectsList.filter(x=> x.status==3).length])
+      project.push(["On Hold",projectsList.filter(x=> x.status==4).length])
+      
 
     
   
@@ -971,14 +1058,14 @@ const exportClickWithYTD =  () => {
 
 
 const GetHeaderYTD = () =>{
-  const header = ["Type/FW"]
-  for (let index = 0; index < 13; index++) {
-    if(index==0)
-    {
-      header.push("LY")
-    }else{
+  const header = ["Type/YTD"]
+  for (let index = 1; index < 13; index++) {
+    // if(index==0)
+    // {
+    //   header.push("LY")
+    // }else{
     header.push(`M${index}`)
-    }
+    //}
   }
   return header
 }
@@ -999,12 +1086,13 @@ const returnProjectMilestonesForYTDCalc = () =>{
         //if(milestone){
           project.push([])
         project[i].push(element.name)
-        project[i].push(0)
+       // project[i].push(0)
         let volume =0;
-        for (let index = 1; index < 12; index++) {
-          volume += projectsList.filter(x=> x.projectMilestones.find(y=>y.name == element.name)? calculateFM(x.projectMilestones.find(y=>y.name == element.name).dateActual==index) : false).length
+        for (let index = 1; index < 13; index++) {
+          volume += projectsList.filter(x=> x.projectMilestones.find(y=>y.name == element.name) && x.projectMilestones.find(y=>y.name == element.name).dateActual!= null? calculateFM(x.projectMilestones.find(y=>y.name == element.name).dateActual)==index && calculateFY(x.projectMilestones.find(y=>y.name == element.name).dateActual)==year : false).length
           project[i].push(volume)
         }
+       
        // }
       });
 
@@ -1053,19 +1141,27 @@ const GetHeaderProjectsCycleTimePercentile = () =>{
 
 
 const GetBodyProjectsCycleTimePercentile = () =>{
-  const body =[]
-  const HeaderList = ReturnCycleHeaders()
-  const BodyList = calculateCycleTime()
+  const lobs = projects.map(x=>x.lineOfBusiness.id)
+  const uniqueLobs = [...new Set(lobs)];
+
+  const projectsExportList = [];
+  
+  uniqueLobs.forEach(u=>{
+    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==u)]
+
+    const body =[]
+  const HeaderList = ReturnCycleHeaders(projectsList)
+  const BodyList = calculateCycleTime(projectsList)
 
   HeaderList.forEach((element) => {
-    element.forEach((x) => {
-      body.push([x])
-    });
+ 
+      body.push([element])
+
   });
 
   BodyList.forEach((element,index) => {
-    element.forEach((x) => { 
-      const cycleTimes = [...x.sort((x,y)=>x-y)]
+   
+      const cycleTimes = [...element.sort((x,y)=>x-y)]
 
       let p25index = Math.floor(cycleTimes.length*0.25)
       let p50index = Math.floor(cycleTimes.length*0.5)
@@ -1077,15 +1173,16 @@ const GetBodyProjectsCycleTimePercentile = () =>{
       body[index].push(cycleTimes[p50index])
       body[index].push(cycleTimes[p75index])
       body[index].push(cycleTimes[p90index])
-    });
+   
   });
 
-  
 
-
+    projectsExportList.push(body)
+  })
  
+ 
+  return projectsExportList
 
-return body
 }
 
 
@@ -1127,19 +1224,28 @@ const GetHeaderProjectsPlanningDeltaPercentile = () =>{
 
 
 const GetBodyProjectsPlanningDeltaPercentile = () =>{
-  const body =[]
-  const HeaderList = ReturnCycleHeaders()
-  const BodyList = calculatePlanningDelta()
+
+  const lobs = projects.map(x=>x.lineOfBusiness.id)
+  const uniqueLobs = [...new Set(lobs)];
+
+  const projectsExportList = [];
+  
+  uniqueLobs.forEach(u=>{
+    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==u)]
+
+    const body =[]
+  const HeaderList = ReturnPlanningDeltaHeaders(projectsList)
+  const BodyList = calculatePlanningDelta(projectsList)
 
   HeaderList.forEach((element) => {
-    element.forEach((x) => {
-      body.push([x])
-    });
+ 
+      body.push([element])
+
   });
 
   BodyList.forEach((element,index) => {
-    element.forEach((x) => { 
-      const PlanningDelta = [...x.sort((x,y)=>x-y)]
+   
+      const PlanningDelta = [...element.sort((x,y)=>x-y)]
 
       let p25index = Math.floor(PlanningDelta.length*0.25)
       let p50index = Math.floor(PlanningDelta.length*0.5)
@@ -1151,15 +1257,17 @@ const GetBodyProjectsPlanningDeltaPercentile = () =>{
       body[index].push(PlanningDelta[p50index])
       body[index].push(PlanningDelta[p75index])
       body[index].push(PlanningDelta[p90index])
-    });
+   
   });
 
-  
 
-
+    projectsExportList.push(body)
+  })
  
+ 
+  return projectsExportList
 
-return body
+  
 }
 
 
@@ -1200,19 +1308,29 @@ const GetHeaderProjectsBacklogPercentile = () =>{
 
 
 const GetBodyProjectsBacklogPercentile = () =>{
-  const body =[]
-  const HeaderList = ReturnBacklogHeaders()
-  const BodyList = calculateBacklog()
+
+
+  const lobs = projects.map(x=>x.lineOfBusiness.id)
+  const uniqueLobs = [...new Set(lobs)];
+
+  const projectsExportList = [];
+  
+  uniqueLobs.forEach(u=>{
+    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==u)]
+
+    const body =[]
+  const HeaderList = ReturnBacklogHeaders(projectsList)
+  const BodyList = calculateBacklog(projectsList)
 
   HeaderList.forEach((element) => {
-    element.forEach((x) => {
-      body.push([x])
-    });
+ 
+      body.push([element])
+
   });
 
   BodyList.forEach((element,index) => {
-    element.forEach((x) => { 
-      const Backlog = [...x.sort((x,y)=>x-y)]
+   
+      const Backlog = [...element.sort((x,y)=>x-y)]
 
       let p25index = Math.floor(Backlog.length*0.25)
       let p50index = Math.floor(Backlog.length*0.5)
@@ -1224,15 +1342,17 @@ const GetBodyProjectsBacklogPercentile = () =>{
       body[index].push(Backlog[p50index])
       body[index].push(Backlog[p75index])
       body[index].push(Backlog[p90index])
-    });
+   
   });
 
-  
 
-
+    projectsExportList.push(body)
+  })
  
+ 
+  return projectsExportList
 
-return body
+  
 }
 
 
@@ -1242,77 +1362,82 @@ return body
 
 
 
-const calculatePlanningDelta = () =>{
-  const lobs = projects.map(x=>x.lineOfBusiness.id)
-  const uniqueLobs = [...new Set(lobs)];
-
-  const projectsExportList = [];
+const calculatePlanningDelta = (projectsList) =>{
   
-  uniqueLobs.forEach(u=>{
     const lobProjects = [];
-    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==u)]
+    
 
-    projectsList.forEach(x => {
+    projectsList[0].lineOfBusiness.milestones.forEach(element => {
       const project =[]
+    projectsList.forEach(x => {
+     
       
      
  
-      x.lineOfBusiness.milestones.forEach(element => {
+     
         const milestone = x.projectMilestones.find(x=>x.name == element.name)
         if(milestone && milestone.dateActual){
           project.push( subtractTwoDates(milestone.dateScheduled,milestone.dateActual))
-        }else{
-          project.push("")
         }
+        // else{
+        //   project.push("")
+        // }
       });
     
       lobProjects.push(project)
     });
-    projectsExportList.push(lobProjects)
-  })
+  
  
  
-  return projectsExportList
+  return lobProjects
 }
 
+const getContractToStart = (projs) =>{  
 
+  const project =[]
+  const name = projs[0].lineOfBusiness.milestones[0].name
+  console.log(name)
+    projs.forEach(x => {
 
-const calculateCycleTime = () =>{
-  const lobs = projects.map(x=>x.lineOfBusiness.id)
-  const uniqueLobs = [...new Set(lobs)];
-
-  const projectsExportList = [];
-  
-  uniqueLobs.forEach(u=>{
-    const lobProjects = [];
-    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==u)]
-
-    projectsList.forEach(x => {
-      const project =[]
-      
-     
- 
-
-
-      x.lineOfBusiness.milestones.forEach((element,index) => {
-        if(index ==0){
-          const milestone = x.projectMilestones.find(x=>x.name == element.name)
-          const contractDate = x.opportunity.contractSignatureDate
-          if(milestone && milestone.dateActual){
-            project.push( subtractTwoDates(contractDate,milestone.dateActual))
-          }else{
-            project.push("")
-          }
+        const milestone = x.projectMilestones.find(x=>x.name == name)
+        const contractDate = x.contractSignatureDate
+        if(milestone && milestone.dateActual){
+          project.push( subtractTwoDates(contractDate,milestone.dateActual))
         }
-        else if(index < x.lineOfBusiness.milestones.length-1){
-        const milestone1 = x.projectMilestones.find(x=>x.name == element.name)
-        const milestone2 = x.projectMilestones.find(x=>x.name == x.lineOfBusiness.milestones[index+1].name)
+        // else{
+        //   project.push("")
+        // }
+      
+    
+    });
+    return project
+}
+
+const calculateCycleTime = (projectsList) =>{
+ 
+     const lobProjects = [];
+  
+    const proj = getContractToStart(projectsList)
+    lobProjects.push(proj)
+
+    projectsList[0].lineOfBusiness.milestones.forEach((element,index) => {
+      if(index < projectsList[0].lineOfBusiness.milestones.length-1){
+      const project =[]
+    projectsList.forEach(x => {
+      
+       // else if(index < x.lineOfBusiness.milestones.length-1){
+          const milestone1 = x.projectMilestones.find(y=>y.name == element.name)
+          var indx= x.projectMilestones.indexOf(milestone1)
+        const milestone2 = x.projectMilestones.find(y=>y.name == x.projectMilestones[indx+1].name)
+        // const milestone1 = x.projectMilestones.find(x=>x.name == element.name)
+        // const milestone2 = x.projectMilestones.find(x=>x.name == x.lineOfBusiness.milestones[index+1].name)
         if(milestone1 && milestone2 && milestone1.dateActual && milestone2.dateActual){
           project.push( subtractTwoDates(milestone1.dateActual,milestone2.dateActual))
-        }else{
-          project.push("")
         }
-      }
+        // else{
+        //   project.push("")
+        // }
+      //}
       });
 
      
@@ -1322,38 +1447,38 @@ const calculateCycleTime = () =>{
     
 
       lobProjects.push(project)
+    }
     });
-    projectsExportList.push(lobProjects)
-  })
+  
+
  
  
-  return projectsExportList
+  return lobProjects
 }
 
 
 
-const calculateBacklog = () =>{
-  const lobs = projects.map(x=>x.lineOfBusiness.id)
-  const uniqueLobs = [...new Set(lobs)];
-
-  const projectsExportList = [];
+const calculateBacklog = (projectsList) =>{
   
-  uniqueLobs.forEach(u=>{
     const lobProjects = [];
-    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==u)]
-
-    projectsList.forEach(x => {
+   
+    projectsList[0].lineOfBusiness.milestones.forEach((element,indx) => {
+      if(indx<projectsList[0].lineOfBusiness.milestones.length-1){
       const project =[]
+    projectsList.forEach(x => {
+      
       
      
- 
-      x.lineOfBusiness.milestones.forEach(element => {
+
+     
         const milestone = x.projectMilestones.find(x=>x.name == element.name)
         if(milestone && !milestone.dateActual){
-          project.push( subtractTwoDates(Date.now,milestone.dateScheduled))
-        }else{
-          project.push("")
+          project.push( Math.round(subtractTwoDates(milestone.dateScheduled,dashboardDate)))
         }
+        // else{
+        //   project.push("")
+        // }
+      
       });
 
      
@@ -1363,82 +1488,84 @@ const calculateBacklog = () =>{
     
 
       lobProjects.push(project)
+    }
     });
-    projectsExportList.push(lobProjects)
-  })
+    
+
  
  
-  return projectsExportList
+  return lobProjects
 }
 
-const ReturnBacklogHeaders = () =>{
-  const lobs = projects.map(x=>x.lineOfBusiness.id)
-  const uniqueLobs = [...new Set(lobs)];
-
-  const projectsExportList = [];
+const ReturnBacklogHeaders = (projectsList) =>{
   
-  uniqueLobs.forEach(u=>{
     const lobProjects = [];
-    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==u)]
-
-    projectsList.forEach(x => {
-      const project =[]
-      
+   
+    
      
  
 
 
-      x.lineOfBusiness.milestones.forEach((element,index) => {
+    projectsList[0].lineOfBusiness.milestones.forEach((element,index) => {
         if(index ==0){
-          project.push(`Not started`)
+          lobProjects.push(`Not started`)
         }
-        else if(index < x.lineOfBusiness.milestones.length-1){
-          project.push(`${element.name}`)
+        else if(index < projectsList[0].lineOfBusiness.milestones.length-1){
+          lobProjects.push(`${element.name}`)
       }
       });
 
-      lobProjects.push(project)
-    });
-    projectsExportList.push(lobProjects)
-  })
+    
+
  
  
-  return projectsExportList
+  return lobProjects
 }
 
-const ReturnCycleHeaders = () =>{
-  const lobs = projects.map(x=>x.lineOfBusiness.id)
-  const uniqueLobs = [...new Set(lobs)];
-
-  const projectsExportList = [];
+const ReturnCycleHeaders = (projectsList) =>{
+ 
+     const lobProjects = [];
   
-  uniqueLobs.forEach(u=>{
-    const lobProjects = [];
-    let projectsList = [...projects.filter(y=>y.lineOfBusiness.id==u)]
 
-    projectsList.forEach(x => {
-      const project =[]
+  const start = projectsList[0].lineOfBusiness.milestones[0].name
+  lobProjects.push(`Contract to ${start}`)
+    
       
      
- 
+     
 
-
-      x.lineOfBusiness.milestones.forEach((element,index) => {
-        if(index ==0){
-          project.push(`Contract to ${x.lineOfBusiness.milestones[index+1].name}`)
-        }
-        else if(index < x.lineOfBusiness.milestones.length-1){
-          project.push(`${element.name} to ${x.lineOfBusiness.milestones[index+1].name}`)
+  projectsList[0].lineOfBusiness.milestones.forEach((element,index) => {
+       
+        if(index < projectsList[0].lineOfBusiness.milestones.length-1){
+          lobProjects.push(`${element.name} to ${projectsList[0].lineOfBusiness.milestones[index+1].name}`)
       }
       });
 
-      lobProjects.push(project)
-    });
-    projectsExportList.push(lobProjects)
-  })
+   
+ 
+  return lobProjects
+}
+
+
+const ReturnPlanningDeltaHeaders = (projectsList) =>{
+  
+    const lobProjects = [];
+  
+
+
+   projectsList[0].lineOfBusiness.milestones.forEach((element,index) => {
+      
+    lobProjects.push(element.name)
+
+      });
+
+      
+   
+    
+
  
  
-  return projectsExportList
+  return lobProjects
 }
 
 ////////////////////////
@@ -1454,12 +1581,24 @@ const calculateFW = (date) =>{
   var weekNumber = Math.ceil(days / 7);
 
   // Display the calculated result       
-  return weekNumber
+  return weekNumber+1
 }
 
 const calculateFM = (date) =>{
   var currentDate = new Date(date);
-  return currentDate.getMonth()
+  return currentDate.getMonth()+1
+}
+
+const calculateFY = (date) =>{
+  var currentDate = new Date(date);
+  return currentDate.getFullYear()
+}
+
+const handleChangeInputDate =   (date, dateString) => {
+  // setWeek(calculateFW(dateString))
+  // setMonth(calculateFM(dateString))
+  setYear(calculateFY(dateString))
+  setDashboardDate(dateString)
 }
  
 
@@ -1530,6 +1669,23 @@ const calculateFM = (date) =>{
            </Col>
 
            <Col className="gutter-row" span={6}>
+       <Form.Item
+         label=""
+         name="inputDate"
+         rules={[
+           {
+             required: true,
+             message: 'Please enter input date!',
+           },
+         ]}
+       
+       >
+          <DatePicker style={{ width: 295 }}  placeholder="Enter input date" onChange={handleChangeInputDate}   />
+          </Form.Item>
+    
+           </Col>
+
+           <Col className="gutter-row" span={6}>
          <Form.Item>
          <RangePicker name="searchDates" onChange={handleChangeSearchDates} />
              </Form.Item>
@@ -1538,6 +1694,15 @@ const calculateFM = (date) =>{
 
            {allowedRoles(['SuperAdmin','FDBAdmin','CompanyAdmin','operationManager']) ? (
           <>
+
+<Col className="gutter-row" span={3}> 
+       
+
+
+       <Button  onClick={exportClickWithCalc}   disabled={actionLoading} type="primary" >Basic calculation</Button>
+       
+       </Col>
+
            <Col className="gutter-row" span={3}> 
        
 
@@ -1546,14 +1711,8 @@ const calculateFM = (date) =>{
        
        </Col>
         
-          <Col className="gutter-row" span={3}> 
-       
-
-
-<Button  onClick={exportClickWithCalc}   disabled={actionLoading} type="primary" >Basic calculation</Button>
-
-</Col>
-
+          
+{/* 
 <Col className="gutter-row" span={2.5}> 
 
 <Button  onClick={exportClickWithFW}   disabled={actionLoading} type="primary" >Fiscal week</Button>
@@ -1586,6 +1745,13 @@ const calculateFM = (date) =>{
 </Col> 
 
 
+
+<Col className="gutter-row" span={3}> 
+
+<Button  onClick={exportClickWithFWBackLog}   disabled={actionLoading} type="primary" >Backlog</Button>
+
+</Col> 
+
 <Col className="gutter-row" span={3}> 
 
 <Button  onClick={exportClickWithProjectsBacklogPercentile}   disabled={actionLoading} type="primary" >Backlog Aging percentile</Button>
@@ -1596,7 +1762,7 @@ const calculateFM = (date) =>{
 
 <Button  onClick={exportClickWithProjectScheduleCountFW}   disabled={actionLoading} type="primary" >Scheduled Count</Button>
 
-</Col> 
+</Col>  */}
 
 
       

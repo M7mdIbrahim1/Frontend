@@ -2,7 +2,7 @@ import {useRef, useState, useEffect, React} from 'react'
 import { useGetCompaniesMutation,useGetMilestonesMutation,useSaveMilestoneMutation,useDeleteMilestoneMutation,useUpdateMilestoneMutation } from "../slices/milestoneApiSlice"
 import { useSelector } from "react-redux"
 import {selectCurrentUserRoles /*, selectCurrentUserPermissions*/ }from '../../auth/slices/authSlice'
-import { Col, Row,Button,message,Descriptions, Form , Input, Select, Table, Popconfirm, Checkbox,Cascader,Tooltip } from 'antd';
+import { Col, Row,Button,message,Descriptions, Form , Input, Select, Table, Popconfirm, Checkbox,Cascader,Tooltip,InputNumber } from 'antd';
 import {
   EditOutlined,
   DeleteOutlined
@@ -37,6 +37,13 @@ function Milestones() {
       title: 'Need payment',
       dataIndex: 'needPayment',
       render: (needPayment) => (needPayment? "Yes" : "No"),
+      width: '10%',
+    },
+    {
+      title: 'Index',
+      dataIndex: 'index',
+      // render: (_, record) => {
+      //   return (milestones.indexOf(record)+1)},
       width: '10%',
     },
     {
@@ -95,6 +102,8 @@ const [desc, setDesc] = useState('')
 const [needPayment, setNeedPayment] = useState(false)
 const [lineOfBusinessId, setLineOfBusinessId] = useState(-1)
 
+const [index, setIndex] = useState(0)
+
 //const [searchLineOfBusinessId, setSearchLineOfBusinessId] = useState(-1)
 const [searchName, setSearchName] = useState('')
 
@@ -105,6 +114,7 @@ const [searchName, setSearchName] = useState('')
 
 
 
+const handleChangeMilestoneIndex =   (value) =>  setIndex(value)
 const handleNameInput =   (e) =>  setName(e.target.value)
 const handleDescInput =   (e) =>  setDesc(e.target.value)
 const handleNeedPaymentInput =   (e) => { 
@@ -142,6 +152,13 @@ const loadMilestones = async (name,page,pageSize,lineOfBusinessId) =>{
   setMilestones(milestonesArray)
 
   reSetPagingInfo(page,pageSize,total)
+
+  if(name==""){
+  setIndex(total+1)
+    form.setFieldsValue({
+      index:total+1
+    });
+  }
   
 }
 
@@ -190,7 +207,7 @@ const handleChangeLineOfBusiness =   (value) => {
     setRetainer("No Milestones for retainer line of business")
   }else{
     setRetainer("")
-    loadMilestones(searchName,1, pagination.pageSize,value[1])
+    loadMilestones(searchName,1, pagination.pageSize,value[1])   
   }
   }else{
    // loadMilestones(searchName,1, pagination.pageSize,-1)
@@ -264,13 +281,15 @@ form.setFieldsValue({
   name: milestone.name,
   desc: milestone.description,
   lineOfBusinessId: [milestone.lineOfBusiness.company.id, milestone.lineOfBusinessId],
-  needPayment: milestone.needPayment
+  needPayment: milestone.needPayment,
+  index:milestone.index
 });
  setName(milestone.name)
  setDesc(milestone.description)
  setLineOfBusinessId(milestone.lineOfBusinessId)
  setNeedPayment(milestone.needPayment)
  setMilestoneEditId(milestone.id)
+ setIndex(milestone.index)
   }
   
 }
@@ -296,7 +315,7 @@ const deleteClick = async (id) => {
   showLoadingMessage('loading...')
     await deleteMilestone({Id: id}).unwrap()
     showMessage('Milestone deleted successfully!')
-    loadMilestones("", 1, pagination.pageSize,"")
+    loadMilestones(searchName, 1, pagination.pageSize,lineOfBusinessId)
     reset()
     
   }
@@ -311,13 +330,13 @@ const onFinish = async (values) => {
           setActionLoading(true)
           showLoadingMessage('loading...')
         if(milestoneEditId!=-1){
-          await update({Id: milestoneEditId,Name: name, Description: desc, LineOfBusinessId: lineOfBusinessId, needPayment}).unwrap()
+          await update({Id: milestoneEditId,Name: name, Description: desc, LineOfBusinessId: lineOfBusinessId, needPayment, Index:index}).unwrap()
           setIsEdit(false)
           setMilestoneEditId(-1)
           showMessage('Milestone updated successfully!')
           
         }else{
-        await save({Name: name, Description: desc, LineOfBusinessId: lineOfBusinessId, needPayment}).unwrap()
+        await save({Name: name, Description: desc, LineOfBusinessId: lineOfBusinessId, needPayment,Index:index}).unwrap()
           showMessage('Milestone created successfully!')
         }
         
@@ -454,6 +473,23 @@ const filter = (inputValue, path) =>
        }}>
 
 <Descriptions title="Milestone details"></Descriptions>
+
+<Col className="gutter-row" span={3}>
+<Form.Item
+         label="Milestone Index"
+         name="index"
+         rules={[
+          {
+            required: true,
+            message: 'Please input Milestone index!',
+          },
+        ]}
+       >
+    <InputNumber min={1}   onChange={handleChangeMilestoneIndex} />
+    </Form.Item>
+    </Col>
+
+
        <Col className="gutter-row" span={6}>
        <Form.Item
          label="Milestone Name"

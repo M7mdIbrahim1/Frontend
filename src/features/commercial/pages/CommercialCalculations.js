@@ -129,6 +129,8 @@ function CommercialCalculations() {
   const [toCurrency, setToCurrency] = useState("EGP")
 
 
+const [year, setYear] = useState(2022)
+
   
 
 //const [saveOpportunity ] = useSaveOpportunityMutation();
@@ -169,21 +171,66 @@ const handleSearchStatus = (args) => {
   loadOpportunties(args,pagination.current,pagination.pageSize,searchLineOfBusinessIds,searchDateFrom,searchDateTo)
 }
 
-const convertCurrency = async (amount, from, to) => {
+
+const fixedTestRates = [
+  {from:"EGP",
+   to:"EGP",
+   rate:1
+  },
+  {from:"USD",
+   to:"EGP",
+   rate:31
+  },
+  {from:"EUR",
+   to:"EGP",
+   rate:33
+  },
+  {from:"GBP",
+   to:"EGP",
+   rate:39
+  },
+  {from:"AED",
+   to:"EGP",
+   rate:8.5
+  },
+  {from:"SAR",
+   to:"EGP",
+   rate:8
+  },
+]
+
+const convertCurrency = (amount, from, to) =>{
   const toCurrency = mapCurrency(to)
   const fromCurrency = mapCurrency(from)
-  const res = await axios.get(`https://v6.exchangerate-api.com/v6/fa70421a4a77ced555e79d5a/latest/${toCurrency}`)
-  if(res){
-    const rate = res.conversion_rates[fromCurrency]
-    if(rate){
-    return amount*rate
-    }else{
-      return 0
-    }
-  }else{
+
+  const fromRate = fixedTestRates.find(x=>x.from==fromCurrency)
+  const toRate = fixedTestRates.find(x=>x.from==toCurrency)
+  if(fromRate && toRate){
+    var toEGP = amount*fromRate.rate
+    return toEGP*toRate.rate
+  }
+  else 
+  {
     return 0
   }
+  
 }
+
+// const convertCurrency = async (amount, from, to) => {
+//   const toCurrency = mapCurrency(to)
+//   const fromCurrency = mapCurrency(from)
+//   const res = await axios.get(`https://v6.exchangerate-api.com/v6/fa70421a4a77ced555e79d5a/latest/${toCurrency}`)
+//   if(res){
+//     const rate = res.conversion_rates[fromCurrency]
+//     if(rate){
+//     return amount*rate
+//     }else{
+//       return 0
+//     }
+//   }else{
+//     return 0
+//   }
+// }
 
 const mapCurrency = (currency) =>{
   switch (currency) {
@@ -381,6 +428,9 @@ const onSearch = (value) => {
     const HeaderOpportunitiesFunnel =  GetHeaderOpportunitiesFunnel()
     const BodyOpportunitiesFunnel = GetBodyOpportunitiesFunnel()
 
+    const HeaderOpportunitiesCCTPercentileAll = GetHeaderOpportunitiesCCTPercentileAll()
+    const BodyOpportunitiesCCTPercentileAll = GetBodyOpportunitiesCCTPercentileAll()
+
     const HeaderOpportunitiesCCTPercentile = GetHeaderOpportunitiesCCTPercentile()
     const BodyOpportunitiesCCTPercentile = GetBodyOpportunitiesCCTPercentile()
 
@@ -509,7 +559,17 @@ const onSearch = (value) => {
       excel.push(insertEmptyLine())
       excel.push(insertEmptyLine())
   
-      excel.push("Opprotunities CCT Percentile")
+      excel.push("Opprotunities CCT Percentile All")
+      excel.push(HeaderOpportunitiesCCTPercentile)
+  
+      BodyOpportunitiesCCTPercentileAll.forEach(element => {
+        excel.push(element)
+      });
+
+      excel.push(insertEmptyLine())
+      excel.push(insertEmptyLine())
+  
+      excel.push("Opprotunities CCT Percentile Projects")
       excel.push(HeaderOpportunitiesCCTPercentile)
   
       BodyOpportunitiesCCTPercentile.forEach(element => {
@@ -601,7 +661,13 @@ const exportClickWithOpportunitiesCCTPercentile =  () => {
 }
 
 const GetHeaderOpportunitiesCCTPercentile = () =>{
-  const header = ["P25","P50","P75","P90"]
+  const header = ["Projects","P25","P50","P75","P90"]
+ 
+  return header
+}
+
+const GetHeaderOpportunitiesCCTPercentileAll = () =>{
+  const header = ["All","P25","P50","P75","P90"]
  
   return header
 }
@@ -612,12 +678,57 @@ const body =[GetCCT1(),GetCCT2()]
 return body
 }
 
+const GetBodyOpportunitiesCCTPercentileAll = () =>{
+  const body =[GetCCT1All(),GetCCT2All()]
+  return body
+  }
+
+
+
+const GetCCT1All = () =>{
+  const Leads =["CCT1 (Lead to Proposal)"]
+  
+  const CCT1 = [...opportunities.filter(x=>x.firstProposalDate? true: false).map(x=>(subtractTwoDates(x.firstContactDate,x.firstProposalDate))).sort((x,y)=>x-y)]
+  
+  let p25index = Math.floor(CCT1.length*0.25)
+  let p50index = Math.floor(CCT1.length*0.5)
+  let p75index = Math.floor(CCT1.length*0.75)
+  let p90index = Math.floor(CCT1.length*0.9)
+  
+  
+  Leads.push(CCT1[p25index])
+  Leads.push(CCT1[p50index])
+  Leads.push(CCT1[p75index])
+  Leads.push(CCT1[p90index])
+  
+  return Leads
+  }
+  
+  const GetCCT2All = () =>{
+    const Leads =["CCT2 (Proposal to Lead)"]
+    
+    const CCT2 = [...opportunities.filter(x=> x.contractSignatureDate? true: false).map(x=>(subtractTwoDates(x.firstProposalDate,x.contractSignatureDate))).sort((x,y)=>x-y)]
+    
+    let p25index = Math.floor(CCT2.length*0.25)
+    let p50index = Math.floor(CCT2.length*0.5)
+    let p75index = Math.floor(CCT2.length*0.75)
+    let p90index = Math.floor(CCT2.length*0.9)
+    
+    
+    Leads.push(CCT2[p25index])
+    Leads.push(CCT2[p50index])
+    Leads.push(CCT2[p75index])
+    Leads.push(CCT2[p90index])
+    
+    return Leads
+    }
+
 
 
 const GetCCT1 = () =>{
 const Leads =["CCT1 (Lead to Proposal)"]
 
-const CCT1 = [...opportunities.filter(x=>x.scope==0).map(x=>(subtractTwoDates(x.firstContactDate,x.firstProposalDate))).sort((x,y)=>x-y)]
+const CCT1 = [...opportunities.filter(x=>x.scope==0 && (x.firstProposalDate? true: false)).map(x=>(subtractTwoDates(x.firstContactDate,x.firstProposalDate))).sort((x,y)=>x-y)]
 
 let p25index = Math.floor(CCT1.length*0.25)
 let p50index = Math.floor(CCT1.length*0.5)
@@ -636,7 +747,7 @@ return Leads
 const GetCCT2 = () =>{
   const Leads =["CCT2 (Proposal to Lead)"]
   
-  const CCT2 = [...opportunities.filter(x=>x.scope==0).map(x=>(subtractTwoDates(x.firstContactDate,x.contractSignatureDate))).sort((x,y)=>x-y)]
+  const CCT2 = [...opportunities.filter(x=>x.scope==0 && (x.contractSignatureDate? true: false)).map(x=>(subtractTwoDates(x.firstProposalDate,x.contractSignatureDate))).sort((x,y)=>x-y)]
   
   let p25index = Math.floor(CCT2.length*0.25)
   let p50index = Math.floor(CCT2.length*0.5)
@@ -672,7 +783,7 @@ const exportClickWithOpportunitiesCCTPercentileRetainer =  () => {
 }
 
 const GetHeaderOpportunitiesCCTPercentileRetainer = () =>{
-  const header = ["P25","P50","P75","P90"]
+  const header = ["Retainer","P25","P50","P75","P90"]
  
   return header
 }
@@ -688,7 +799,7 @@ return body
 const GetCCT1Retainer = () =>{
 const Leads =["CCT1 (Lead to Proposal)"]
 
-const CCT1 = [...opportunities.filter(x=>x.scope==1).map(x=>(subtractTwoDates(x.firstContactDate,x.firstProposalDate))).sort((x,y)=>x-y)]
+const CCT1 = [...opportunities.filter(x=>x.scope==1 && (x.firstProposalDate? true: false)).map(x=>(subtractTwoDates(x.firstContactDate,x.firstProposalDate))).sort((x,y)=>x-y)]
 
 let p25index = Math.floor(CCT1.length*0.25)
 let p50index = Math.floor(CCT1.length*0.5)
@@ -707,7 +818,7 @@ return Leads
 const GetCCT2Retainer = () =>{
   const Leads =["CCT2 (Proposal to Lead)"]
   
-  const CCT2 = [...opportunities.filter(x=>x.scope==1).map(x=>(subtractTwoDates(x.firstContactDate,x.contractSignatureDate))).sort((x,y)=>x-y)]
+  const CCT2 = [...opportunities.filter(x=>x.scope==1 && (x.contractSignatureDate? true: false)).map(x=>(subtractTwoDates(x.firstProposalDate,x.contractSignatureDate))).sort((x,y)=>x-y)]
   
   let p25index = Math.floor(CCT2.length*0.25)
   let p50index = Math.floor(CCT2.length*0.5)
@@ -760,7 +871,7 @@ const GetBodyOpportunitiesFunnelRetainer = () =>{
 const GetLeadsRetainer = () =>{
   const Leads =["Leads"]
 
-  let LeadsAmount = opportunities.filter(x=>x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.scope==1).reduce(function(y, z) { return y+ (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.scope==1).length
 
   Leads.push(LeadsAmount)
@@ -774,7 +885,7 @@ const GetLeadsRetainer = () =>{
 const GetQualifiedRetainer = () =>{
   const Qualified =["Qualified"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status!=0 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status!=0 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status!=0 && x.scope==1).length
 
   Qualified.push(LeadsAmount)
@@ -788,7 +899,7 @@ const GetQualifiedRetainer = () =>{
 const GetProposedRetainer = () =>{
   const Proposed =["Proposed"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status==2&& x.scope==1&& x.scope==1 ).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status==2&& x.scope==1&& x.scope==1 ).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status==2&& x.scope==1&& x.scope==1 ).length
 
   Proposed.push(LeadsAmount)
@@ -802,7 +913,7 @@ const GetProposedRetainer = () =>{
 const GetApprovedRetainer = () =>{
   const Approved =["Approved"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status==3&& x.scope==1 ).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status==3&& x.scope==1 ).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status==3&& x.scope==1 ).length
 
   Approved.push(LeadsAmount)
@@ -816,8 +927,8 @@ const GetApprovedRetainer = () =>{
 const GetWonRetainer = () =>{
   const Won =["Won"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status==4&& x.scope==1 ).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let LeadsAmountContracted = opportunities.filter(x=>x.status==4&& x.scope==1 ).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status==4&& x.scope==1 ).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmountContracted = opportunities.filter(x=>x.status==4&& x.scope==1 ).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status==4&& x.scope==1 ).length
 
   Won.push(LeadsAmount)
@@ -832,7 +943,7 @@ const GetWonRetainer = () =>{
 const GetLostRetainer = () =>{
   const Lost =["Lost"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status==5&& x.scope==1 ).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status==5&& x.scope==1 ).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status==5&& x.scope==1  ).length
 
   Lost.push(LeadsAmount)
@@ -863,34 +974,40 @@ const exportClickWithYTDClientSegAmountRetainer =  () => {
 }
 
 const GetHeaderYTDClientSegProjectAmountRetainer = () =>{
-  const header = ["Project Amount","New","Funnel","Proposed","Approved","Won","Lost","T. Channel","Won%","Won/Loss","Channel%","Avg. opp/Channel","Relative Percentage"]
+  const header = ["Retainer","New","Funnel","Proposed","Approved","Won","Lost","T. Channel","Won%","M Runrate","Runway"]
+  //,"Avg. opp/Channel","Relative Percentage"]
  
   return header
 }
 
 const GetBodyYTDClientSegProjectAmountRetainer = () =>{
-const body =[GetDirectAmountRetainer(),GetReferralAmountRetainer(),GetFacebookAmountRetainer(),GetWebsiteAmountRetainer(),GetTotalAmountRetainer(),GetAvgDiscountRetainer(),GetValueContractedDirectRetainer(),GetValueContractedReferralRetainer(),GetValueContractedFaceBookRetainer(),GetValueContractedWebsiteRetainer(),GetValueContractedTotalRetainer()]
-let totalDirect = body[0][7]
-let totalReferral = body[1][7]
-let totalFacebook = body[2][7]
-let totalWebsite = body[3][7]
-let totalAll = body[4][7]
-body[0][10] = totalDirect/totalAll
-body[1][10] = totalReferral/totalAll
-body[2][10] = totalFacebook/totalAll
-body[3][10] = totalWebsite/totalAll
-body[4][10] = totalAll/totalAll
+const body =[
+  GetTotalVolumeRetainer(),
+  //GetDirectAmountRetainer(),GetReferralAmountRetainer(),GetFacebookAmountRetainer(),GetWebsiteAmountRetainer(),
+  GetTotalAmountRetainer(),GetAvgDiscountRetainer(),
+  //GetValueContractedDirectRetainer(),GetValueContractedReferralRetainer(),GetValueContractedFaceBookRetainer(),GetValueContractedWebsiteRetainer(),
+  GetValueContractedTotalRetainer()]
+// let totalDirect = body[0][7]
+// let totalReferral = body[1][7]
+// let totalFacebook = body[2][7]
+// let totalWebsite = body[3][7]
+// let totalAll = body[4][7]
+// body[0][10] = totalDirect/totalAll
+// body[1][10] = totalReferral/totalAll
+// body[2][10] = totalFacebook/totalAll
+// body[3][10] = totalWebsite/totalAll
+// body[4][10] = totalAll/totalAll
 
-let avgDirect = body[0][11]
-let avgReferral = body[1][11]
-let avgFacebook = body[2][11]
-let avgWebsite = body[3][11]
-let avgAll = body[4][11]
-body[0][12] = avgDirect/avgAll
-body[1][12] = avgReferral/avgAll
-body[2][12] = avgFacebook/avgAll
-body[3][12] = avgWebsite/avgAll
-body[4][12] = avgAll/avgAll
+// let avgDirect = body[0][11]
+// let avgReferral = body[1][11]
+// let avgFacebook = body[2][11]
+// let avgWebsite = body[3][11]
+// let avgAll = body[4][11]
+// body[0][12] = avgDirect/avgAll
+// body[1][12] = avgReferral/avgAll
+// body[2][12] = avgFacebook/avgAll
+// body[3][12] = avgWebsite/avgAll
+// body[4][12] = avgAll/avgAll
 return body
 }
 
@@ -901,10 +1018,10 @@ const DirectAmount =["Direct"]
 
 let New = "-"
 let Funnel = "-"
-let Approved = opportunities.filter(x=>x.status==2 && x.source==1  && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Proposed = opportunities.filter(x=>x.status==3 && x.source==1 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Won = opportunities.filter(x=>x.status==4 && x.source==1 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Lost = opportunities.filter(x=>x.status==5 && x.source==1 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Approved = opportunities.filter(x=>x.status==2 && x.source==1  && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Proposed = opportunities.filter(x=>x.status==3 && x.source==1 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Won = opportunities.filter(x=>x.status==4 && x.source==1 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Lost = opportunities.filter(x=>x.status==5 && x.source==1 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 let total =Approved+Proposed+Won+Lost
 let wonPercentage = Won/total
 let wonLoss = Won/Lost
@@ -938,10 +1055,10 @@ const Referral =["Referral"]
 
 let New = "-"
 let Funnel = "-"
-let Approved = opportunities.filter(x=>x.status==2 && x.source==0 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Proposed = opportunities.filter(x=>x.status==3 && x.source==0 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Won = opportunities.filter(x=>x.status==4 && x.source==0 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Lost = opportunities.filter(x=>x.status==5 && x.source==0 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Approved = opportunities.filter(x=>x.status==2 && x.source==0 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Proposed = opportunities.filter(x=>x.status==3 && x.source==0 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Won = opportunities.filter(x=>x.status==4 && x.source==0 && x.scope==1).reduce(function(y, z) { return y+ (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Lost = opportunities.filter(x=>x.status==5 && x.source==0 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 let total =Approved+Proposed+Won+Lost
 let wonPercentage = Won/total
 let wonLoss = Won/Lost
@@ -976,10 +1093,10 @@ const Facebook =["Facebook"]
 
 let New = "-"
 let Funnel = "-"
-let Approved = opportunities.filter(x=>x.status==2 && x.source==2 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Proposed = opportunities.filter(x=>x.status==3 && x.source==2 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Won = opportunities.filter(x=>x.status==4 && x.source==2 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Lost = opportunities.filter(x=>x.status==5 && x.source==2 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Approved = opportunities.filter(x=>x.status==2 && x.source==2 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Proposed = opportunities.filter(x=>x.status==3 && x.source==2 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Won = opportunities.filter(x=>x.status==4 && x.source==2 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Lost = opportunities.filter(x=>x.status==5 && x.source==2 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 let total =Approved+Proposed+Won+Lost
 let wonPercentage = Won/total
 let wonLoss = Won/Lost
@@ -1013,10 +1130,10 @@ const Website =["Website"]
 
 let New = "-"
 let Funnel = "-"
-let Approved = opportunities.filter(x=>x.status==2 && x.source==3 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Proposed = opportunities.filter(x=>x.status==3 && x.source==3 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Won = opportunities.filter(x=>x.status==4 && x.source==3 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Lost = opportunities.filter(x=>x.status==5 && x.source==3 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Approved = opportunities.filter(x=>x.status==2 && x.source==3 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Proposed = opportunities.filter(x=>x.status==3 && x.source==3 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Won = opportunities.filter(x=>x.status==4 && x.source==3 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Lost = opportunities.filter(x=>x.status==5 && x.source==3 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 let total =Approved+Proposed+Won+Lost
 let wonPercentage = Won/total
 let wonLoss = Won/Lost
@@ -1045,17 +1162,45 @@ return Website
 }
 
 
+const GetTotalVolumeRetainer = () =>{
+  const ProposalBacklog =["Volume"]
+
+  let New = opportunities.filter(x=>x.status==0 && x.scope==1).length
+  let Funnel = opportunities.filter(x=>x.status==1 && x.scope==1).length
+  let Approved = opportunities.filter(x=>x.status==2 && x.scope==1).length
+  let Proposed = opportunities.filter(x=>x.status==3 && x.scope==1).length
+  let Won = opportunities.filter(x=>x.status==4 && x.scope==1).length
+  let Lost = opportunities.filter(x=>x.status==5 && x.scope==1).length
+  let total = New + Funnel +Approved+Proposed+Won+Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let runRate = opportunities.filter(x=>x.scope==1).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency)/z.retainerValidatity : 0) }, 0)
+  let runWay = opportunities.filter(x=>x.scope==1).reduce(function(y, z) { return y + (z.retainerValidatity ? z.retainerValidatity : 0) }, 0) / opportunities.filter(x=>x.scope==1).length
+  //let wonLoss = Won/Lost
+  ProposalBacklog.push(New)
+  ProposalBacklog.push(Funnel)
+  ProposalBacklog.push(Approved)
+  ProposalBacklog.push(Proposed)
+  ProposalBacklog.push(Won)
+  ProposalBacklog.push(Lost)
+  ProposalBacklog.push(total)
+  ProposalBacklog.push(wonPercentage)
+  ProposalBacklog.push(runRate)
+  ProposalBacklog.push(runWay)
+ return ProposalBacklog
+}
+
+
 const GetTotalAmountRetainer = () =>{
-const Total =["T. Status"]
+const Total =["Value proposed"]
 let New = "-"
 let Funnel = "-"
-let Approved = opportunities.filter(x=>x.status==2 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Proposed = opportunities.filter(x=>x.status==3 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Won = opportunities.filter(x=>x.status==4 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-let Lost = opportunities.filter(x=>x.status==5 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Approved = opportunities.filter(x=>x.status==2 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Proposed = opportunities.filter(x=>x.status==3 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Won = opportunities.filter(x=>x.status==4 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let Lost = opportunities.filter(x=>x.status==5 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 let total =Approved+Proposed+Won+Lost
-let wonPercentage = Won/total
-let wonLoss = Won/Lost
+let wonPercentage =  Math.round((Won/total)*100)
+let wonLoss =  Math.round((Won/Lost)*100)
 
 let NewVol = opportunities.filter(x=>x.status==0 && x.scope==1).length
 let FunnelVol = opportunities.filter(x=>x.status==1 && x.scope==1).length
@@ -1074,9 +1219,9 @@ Total.push(Won)
 Total.push(Lost)
 Total.push(total)
 Total.push(wonPercentage)
-Total.push(wonLoss)
+//Total.push(wonLoss)
 Total.push("-")
-Total.push(total/totalVol)
+//Total.push(total/totalVol)
 Total.push("-")
 return Total
 }
@@ -1085,24 +1230,24 @@ const GetAvgDiscountRetainer = () =>{
 const avgDiscount =["Average Discount"]
 
 
-let AllProposed = opportunities.filter(x=>x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let AllProposed = opportunities.filter(x=>x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
-let WonTotalProposal = opportunities.filter(x=>x.status==4 && x.scope==1).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
-let WonTotalContracted = opportunities.filter(x=>x.status==4 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let WonTotalProposal = opportunities.filter(x=>x.status==4 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let WonTotalContracted = opportunities.filter(x=>x.status==4 && x.scope==1).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0) 
 
 
 avgDiscount.push("-")
 avgDiscount.push("-")
 avgDiscount.push("-")
 avgDiscount.push("-")
-avgDiscount.push(WonTotalProposal/WonTotalContracted)
+avgDiscount.push(Math.round((WonTotalProposal/WonTotalContracted)*100))
 avgDiscount.push("-")
-avgDiscount.push(AllProposed/WonTotalContracted)
-avgDiscount.push("-")
-avgDiscount.push("-")
+avgDiscount.push(Math.round((AllProposed/WonTotalContracted)*100))
 avgDiscount.push("-")
 avgDiscount.push("-")
 avgDiscount.push("-")
+//avgDiscount.push("-")
+//avgDiscount.push("-")
 return avgDiscount
 }
 
@@ -1110,7 +1255,7 @@ const GetValueContractedDirectRetainer = () =>{
 const ValueContracted =["Value Contracted Direct"]
 
 
-let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==1 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==1 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
 ValueContracted.push("-")
@@ -1132,7 +1277,7 @@ const GetValueContractedReferralRetainer = () =>{
 const ValueContracted =["Value Contracted Referral"]
 
 
-let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==0  && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==0  && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
 ValueContracted.push("-")
@@ -1154,7 +1299,7 @@ const GetValueContractedFaceBookRetainer = () =>{
 const ValueContracted =["Value Contracted Facebook"]
 
 
-let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==2  && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==2  && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
 ValueContracted.push("-")
@@ -1176,7 +1321,7 @@ const GetValueContractedWebsiteRetainer = () =>{
 const ValueContracted =["Value Contracted Website"]
 
 
-let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==3 && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==3 && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
 ValueContracted.push("-")
@@ -1198,7 +1343,7 @@ const GetValueContractedTotalRetainer = () =>{
 const ValueContracted =["Value Contracted Total"]
 
 
-let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.scope==1).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.scope==1).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
 ValueContracted.push("-")
@@ -1211,8 +1356,8 @@ ValueContracted.push(WonTotalContracted)
 ValueContracted.push("-")
 ValueContracted.push("-")
 ValueContracted.push("-")
-ValueContracted.push("-")
-ValueContracted.push("-")
+//ValueContracted.push("-")
+//ValueContracted.push("-")
 return ValueContracted
 }
 
@@ -1255,11 +1400,12 @@ const GetBodyOpportunitiesFunnel = () =>{
 const GetLeads = () =>{
   const Leads =["Leads"]
 
-  let LeadsAmount = opportunities.filter(x=>x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.scope==0).length
 
-  Leads.push(LeadsAmount)
   Leads.push(LeadsVolume)
+  Leads.push(LeadsAmount)
+ 
   Leads.push("-")
   Leads.push(LeadsAmount/LeadsVolume)
  
@@ -1269,11 +1415,12 @@ const GetLeads = () =>{
 const GetQualified = () =>{
   const Qualified =["Qualified"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status!=0 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status!=0 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status!=0 && x.scope==0).length
 
-  Qualified.push(LeadsAmount)
   Qualified.push(LeadsVolume)
+  Qualified.push(LeadsAmount)
+  
   Qualified.push("-")
   Qualified.push(LeadsAmount/LeadsVolume)
  
@@ -1283,11 +1430,12 @@ const GetQualified = () =>{
 const GetProposed = () =>{
   const Proposed =["Proposed"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status==2 && x.scope==0 ).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status==2 && x.scope==0 ).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status==2 && x.scope==0 ).length
 
-  Proposed.push(LeadsAmount)
   Proposed.push(LeadsVolume)
+  Proposed.push(LeadsAmount)
+  
   Proposed.push("-")
   Proposed.push(LeadsAmount/LeadsVolume)
  
@@ -1297,11 +1445,12 @@ const GetProposed = () =>{
 const GetApproved = () =>{
   const Approved =["Approved"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status==3 && x.scope==0 ).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status==3 && x.scope==0 ).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status==3 && x.scope==0 ).length
 
-  Approved.push(LeadsAmount)
   Approved.push(LeadsVolume)
+  Approved.push(LeadsAmount)
+  
   Approved.push("-")
   Approved.push(LeadsAmount/LeadsVolume)
  
@@ -1311,12 +1460,13 @@ const GetApproved = () =>{
 const GetWon = () =>{
   const Won =["Won"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status==4 && x.scope==0 ).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let LeadsAmountContracted = opportunities.filter(x=>x.status==4 && x.scope==0 ).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status==4 && x.scope==0 ).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmountContracted = opportunities.filter(x=>x.status==4 && x.scope==0 ).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status==4 && x.scope==0 ).length
 
-  Won.push(LeadsAmount)
   Won.push(LeadsVolume)
+  Won.push(LeadsAmount)
+  
   Won.push(LeadsAmountContracted)
   Won.push(LeadsAmount/LeadsVolume)
  
@@ -1327,11 +1477,12 @@ const GetWon = () =>{
 const GetLost = () =>{
   const Lost =["Lost"]
 
-  let LeadsAmount = opportunities.filter(x=>x.status==5 && x.scope==0 ).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let LeadsAmount = opportunities.filter(x=>x.status==5 && x.scope==0 ).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let LeadsVolume = opportunities.filter(x=>x.status==5 && x.scope==0  ).length
 
-  Lost.push(LeadsAmount)
   Lost.push(LeadsVolume)
+  Lost.push(LeadsAmount)
+  
   Lost.push("-")
   Lost.push(LeadsAmount/LeadsVolume)
  
@@ -1372,22 +1523,22 @@ const GetBodyYTDClientSegProjectAmount = () =>{
   let totalFacebook = body[2][7]
   let totalWebsite = body[3][7]
   let totalAll = body[4][7]
-  body[0][10] = totalDirect/totalAll
-  body[1][10] = totalReferral/totalAll
-  body[2][10] = totalFacebook/totalAll
-  body[3][10] = totalWebsite/totalAll
-  body[4][10] = totalAll/totalAll
+  body[0][10] = Math.round((totalDirect/totalAll)*100)
+  body[1][10] = Math.round((totalReferral/totalAll)*100)
+  body[2][10] = Math.round((totalFacebook/totalAll)*100)
+  body[3][10] = Math.round((totalWebsite/totalAll)*100)
+  body[4][10] = Math.round((totalAll/totalAll)*100)
 
   let avgDirect = body[0][11]
   let avgReferral = body[1][11]
   let avgFacebook = body[2][11]
   let avgWebsite = body[3][11]
   let avgAll = body[4][11]
-  body[0][12] = avgDirect/avgAll
-  body[1][12] = avgReferral/avgAll
-  body[2][12] = avgFacebook/avgAll
-  body[3][12] = avgWebsite/avgAll
-  body[4][12] = avgAll/avgAll
+  body[0][12] = Math.round((avgDirect/avgAll)*100)
+  body[1][12] = Math.round((avgReferral/avgAll)*100)
+  body[2][12] = Math.round((avgFacebook/avgAll)*100)
+  body[3][12] = Math.round((avgWebsite/avgAll)*100)
+  body[4][12] = Math.round((avgAll/avgAll)*100)
   return body
 }
 
@@ -1398,13 +1549,13 @@ const GetDirectAmount = () =>{
 
   let New = "-"
   let Funnel = "-"
-  let Approved = opportunities.filter(x=>x.status==2 && x.source==1  && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Proposed = opportunities.filter(x=>x.status==3 && x.source==1 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Won = opportunities.filter(x=>x.status==4 && x.source==1 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Lost = opportunities.filter(x=>x.status==5 && x.source==1 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Approved = opportunities.filter(x=>x.status==2 && x.source==1  && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Proposed = opportunities.filter(x=>x.status==3 && x.source==1 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Won = opportunities.filter(x=>x.status==4 && x.source==1 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Lost = opportunities.filter(x=>x.status==5 && x.source==1 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let total =Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
 
   let NewVol = opportunities.filter(x=>x.status==0 && x.source==1 && x.scope==0).length
   let FunnelVol = opportunities.filter(x=>x.status==1 && x.source==1 && x.scope==0).length
@@ -1435,13 +1586,13 @@ const GetReferralAmount = () =>{
 
   let New = "-"
   let Funnel = "-"
-  let Approved = opportunities.filter(x=>x.status==2 && x.source==0 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Proposed = opportunities.filter(x=>x.status==3 && x.source==0 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Won = opportunities.filter(x=>x.status==4 && x.source==0 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Lost = opportunities.filter(x=>x.status==5 && x.source==0 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Approved = opportunities.filter(x=>x.status==2 && x.source==0 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Proposed = opportunities.filter(x=>x.status==3 && x.source==0 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Won = opportunities.filter(x=>x.status==4 && x.source==0 && x.scope==0).reduce(function(y, z) { return y+ (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Lost = opportunities.filter(x=>x.status==5 && x.source==0 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let total =Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
 
   let NewVol = opportunities.filter(x=>x.status==0 && x.source==0 && x.scope==0).length
   let FunnelVol = opportunities.filter(x=>x.status==1 && x.source==0 && x.scope==0).length
@@ -1473,13 +1624,13 @@ const GetFacebookAmount = () =>{
 
   let New = "-"
   let Funnel = "-"
-  let Approved = opportunities.filter(x=>x.status==2 && x.source==2 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Proposed = opportunities.filter(x=>x.status==3 && x.source==2 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Won = opportunities.filter(x=>x.status==4 && x.source==2 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Lost = opportunities.filter(x=>x.status==5 && x.source==2 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Approved = opportunities.filter(x=>x.status==2 && x.source==2 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Proposed = opportunities.filter(x=>x.status==3 && x.source==2 && x.scope==0).reduce(function(y, z) { return y+ (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Won = opportunities.filter(x=>x.status==4 && x.source==2 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Lost = opportunities.filter(x=>x.status==5 && x.source==2 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let total =Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
 
   let NewVol = opportunities.filter(x=>x.status==0 && x.source==2 && x.scope==0).length
   let FunnelVol = opportunities.filter(x=>x.status==1 && x.source==2 && x.scope==0).length
@@ -1510,13 +1661,13 @@ const GetWebsiteAmount = () =>{
 
   let New = "-"
   let Funnel = "-"
-  let Approved = opportunities.filter(x=>x.status==2 && x.source==3 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Proposed = opportunities.filter(x=>x.status==3 && x.source==3 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Won = opportunities.filter(x=>x.status==4 && x.source==3 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Lost = opportunities.filter(x=>x.status==5 && x.source==3 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Approved = opportunities.filter(x=>x.status==2 && x.source==3 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Proposed = opportunities.filter(x=>x.status==3 && x.source==3 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Won = opportunities.filter(x=>x.status==4 && x.source==3 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Lost = opportunities.filter(x=>x.status==5 && x.source==3 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let total =Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
 
   let NewVol = opportunities.filter(x=>x.status==0 && x.source==3 && x.scope==0).length
   let FunnelVol = opportunities.filter(x=>x.status==1 && x.source==3 && x.scope==0).length
@@ -1546,13 +1697,13 @@ const GetTotalAmount = () =>{
   const Total =["T. Status"]
   let New = "-"
   let Funnel = "-"
-  let Approved = opportunities.filter(x=>x.status==2 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Proposed = opportunities.filter(x=>x.status==3 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Won = opportunities.filter(x=>x.status==4 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-  let Lost = opportunities.filter(x=>x.status==5 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Approved = opportunities.filter(x=>x.status==2 && x.scope==0).reduce(function(y, z) { return y+ (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Proposed = opportunities.filter(x=>x.status==3 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Won = opportunities.filter(x=>x.status==4 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let Lost = opportunities.filter(x=>x.status==5 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
   let total =Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
 
   let NewVol = opportunities.filter(x=>x.status==0 && x.scope==0).length
   let FunnelVol = opportunities.filter(x=>x.status==1 && x.scope==0).length
@@ -1582,19 +1733,19 @@ const GetAvgDiscount = () =>{
   const avgDiscount =["Average Discount"]
 
   
-  let AllProposed = opportunities.filter(x=>x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let AllProposed = opportunities.filter(x=>x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
  
-  let WonTotalProposal = opportunities.filter(x=>x.status==4 && x.scope==0).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
-  let WonTotalContracted = opportunities.filter(x=>x.status==4 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let WonTotalProposal = opportunities.filter(x=>x.status==4 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let WonTotalContracted = opportunities.filter(x=>x.status==4 && x.scope==0).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0) 
 
 
   avgDiscount.push("-")
   avgDiscount.push("-")
   avgDiscount.push("-")
   avgDiscount.push("-")
-  avgDiscount.push(WonTotalProposal/WonTotalContracted)
+  avgDiscount.push(Math.round((WonTotalProposal/WonTotalContracted)*100))
   avgDiscount.push("-")
-  avgDiscount.push(AllProposed/WonTotalContracted)
+  avgDiscount.push(Math.round((AllProposed/WonTotalContracted)*100))
   avgDiscount.push("-")
   avgDiscount.push("-")
   avgDiscount.push("-")
@@ -1607,16 +1758,16 @@ const GetValueContractedDirect = () =>{
   const ValueContracted =["Value Contracted Direct"]
 
   
-  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==1 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==1 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
@@ -1629,16 +1780,16 @@ const GetValueContractedReferral = () =>{
   const ValueContracted =["Value Contracted Referral"]
 
   
-  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==0  && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==0  && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
@@ -1651,16 +1802,16 @@ const GetValueContractedFaceBook = () =>{
   const ValueContracted =["Value Contracted Facebook"]
 
   
-  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==2  && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==2  && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
@@ -1673,16 +1824,16 @@ const GetValueContractedWebsite = () =>{
   const ValueContracted =["Value Contracted Website"]
 
   
-  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==3 && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.source==3 && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
@@ -1695,16 +1846,16 @@ const GetValueContractedTotal = () =>{
   const ValueContracted =["Value Contracted Total"]
 
   
-  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.scope==0).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let WonTotalContracted = opportunities.filter(x=>x.status==4  && x.scope==0).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
 
 
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
-  ValueContracted.push(WonTotalContracted)
+  ValueContracted.push(Math.round((WonTotalContracted)*100))
   ValueContracted.push("-")
   ValueContracted.push("-")
   ValueContracted.push("-")
@@ -1746,11 +1897,11 @@ const GetBodyYTDClientSegProjectVolume = () =>{
   let totalFacebook = body[2][7]
   let totalWebsite = body[3][7]
   let totalAll = body[4][7]
-  body[0][10] = totalDirect/totalAll
-  body[1][10] = totalReferral/totalAll
-  body[2][10] = totalFacebook/totalAll
-  body[3][10] = totalWebsite/totalAll
-  body[4][10] = totalAll/totalAll
+  body[0][10] = Math.round((totalDirect/totalAll)*100)
+  body[1][10] = Math.round((totalReferral/totalAll)*100)
+  body[2][10] = Math.round((totalFacebook/totalAll)*100)
+  body[3][10] = Math.round((totalWebsite/totalAll)*100)
+  body[4][10] = Math.round((totalAll/totalAll)*100)
   return body
 }
 
@@ -1759,15 +1910,15 @@ const GetBodyYTDClientSegProjectVolume = () =>{
 const GetDirectVolumes = () =>{
   const ProposalBacklog =["Direct"]
 
-  let New = opportunities.filter(x=>x.status==0 && x.source==1).length
-  let Funnel = opportunities.filter(x=>x.status==1 && x.source==1).length
-  let Approved = opportunities.filter(x=>x.status==2 && x.source==1).length
-  let Proposed = opportunities.filter(x=>x.status==3 && x.source==1).length
-  let Won = opportunities.filter(x=>x.status==4 && x.source==1).length
-  let Lost = opportunities.filter(x=>x.status==5 && x.source==1).length
+  let New = opportunities.filter(x=>x.status==0 && x.source==1 &&x.scope==0).length
+  let Funnel = opportunities.filter(x=>x.status==1 && x.source==1 &&x.scope==0).length
+  let Approved = opportunities.filter(x=>x.status==2 && x.source==1 &&x.scope==0).length
+  let Proposed = opportunities.filter(x=>x.status==3 && x.source==1 &&x.scope==0).length
+  let Won = opportunities.filter(x=>x.status==4 && x.source==1 &&x.scope==0).length
+  let Lost = opportunities.filter(x=>x.status==5 && x.source==1 &&x.scope==0).length
   let total = New + Funnel +Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
   ProposalBacklog.push(New)
   ProposalBacklog.push(Funnel)
   ProposalBacklog.push(Approved)
@@ -1784,15 +1935,15 @@ const GetDirectVolumes = () =>{
 const GetReferralVolumes = () =>{
   const ProposalBacklog =["Referral"]
 
-  let New = opportunities.filter(x=>x.status==0 && x.source==0).length
-  let Funnel = opportunities.filter(x=>x.status==1 && x.source==0).length
-  let Approved = opportunities.filter(x=>x.status==2 && x.source==0).length
-  let Proposed = opportunities.filter(x=>x.status==3 && x.source==0).length
-  let Won = opportunities.filter(x=>x.status==4 && x.source==0).length
-  let Lost = opportunities.filter(x=>x.status==5 && x.source==0).length
+  let New = opportunities.filter(x=>x.status==0 && x.source==0 &&x.scope==0).length
+  let Funnel = opportunities.filter(x=>x.status==1 && x.source==0 &&x.scope==0).length
+  let Approved = opportunities.filter(x=>x.status==2 && x.source==0 &&x.scope==0).length
+  let Proposed = opportunities.filter(x=>x.status==3 && x.source==0 &&x.scope==0).length
+  let Won = opportunities.filter(x=>x.status==4 && x.source==0 &&x.scope==0).length
+  let Lost = opportunities.filter(x=>x.status==5 && x.source==0 &&x.scope==0).length
   let total = New + Funnel +Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
   ProposalBacklog.push(New)
   ProposalBacklog.push(Funnel)
   ProposalBacklog.push(Approved)
@@ -1810,15 +1961,15 @@ const GetReferralVolumes = () =>{
 const GetFacebookVolumes = () =>{
   const ProposalBacklog =["Facebook"]
 
-  let New = opportunities.filter(x=>x.status==0 && x.source==2).length
-  let Funnel = opportunities.filter(x=>x.status==1 && x.source==2).length
-  let Approved = opportunities.filter(x=>x.status==2 && x.source==2).length
-  let Proposed = opportunities.filter(x=>x.status==3 && x.source==2).length
-  let Won = opportunities.filter(x=>x.status==4 && x.source==2).length
-  let Lost = opportunities.filter(x=>x.status==5 && x.source==2).length
+  let New = opportunities.filter(x=>x.status==0 && x.source==2 &&x.scope==0).length
+  let Funnel = opportunities.filter(x=>x.status==1 && x.source==2 &&x.scope==0).length
+  let Approved = opportunities.filter(x=>x.status==2 && x.source==2 &&x.scope==0).length
+  let Proposed = opportunities.filter(x=>x.status==3 && x.source==2 &&x.scope==0).length
+  let Won = opportunities.filter(x=>x.status==4 && x.source==2 &&x.scope==0).length
+  let Lost = opportunities.filter(x=>x.status==5 && x.source==2 &&x.scope==0).length
   let total = New + Funnel +Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
   ProposalBacklog.push(New)
   ProposalBacklog.push(Funnel)
   ProposalBacklog.push(Approved)
@@ -1838,15 +1989,15 @@ const GetFacebookVolumes = () =>{
 const GetWebsiteVolumes = () =>{
   const ProposalBacklog =["Website"]
 
-  let New = opportunities.filter(x=>x.status==0 && x.source==3).length
-  let Funnel = opportunities.filter(x=>x.status==1 && x.source==3).length
-  let Approved = opportunities.filter(x=>x.status==2 && x.source==3).length
-  let Proposed = opportunities.filter(x=>x.status==3 && x.source==3).length
-  let Won = opportunities.filter(x=>x.status==4 && x.source==3).length
-  let Lost = opportunities.filter(x=>x.status==5 && x.source==3).length
+  let New = opportunities.filter(x=>x.status==0 && x.source==3 &&x.scope==0).length
+  let Funnel = opportunities.filter(x=>x.status==1 && x.source==3 &&x.scope==0).length
+  let Approved = opportunities.filter(x=>x.status==2 && x.source==3 &&x.scope==0).length
+  let Proposed = opportunities.filter(x=>x.status==3 && x.source==3 &&x.scope==0).length
+  let Won = opportunities.filter(x=>x.status==4 && x.source==3 &&x.scope==0).length
+  let Lost = opportunities.filter(x=>x.status==5 && x.source==3 &&x.scope==0).length
   let total = New + Funnel +Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
   ProposalBacklog.push(New)
   ProposalBacklog.push(Funnel)
   ProposalBacklog.push(Approved)
@@ -1864,15 +2015,15 @@ const GetWebsiteVolumes = () =>{
 const GetTotalVolumes = () =>{
   const ProposalBacklog =["T. Status"]
 
-  let New = opportunities.filter(x=>x.status==0).length
-  let Funnel = opportunities.filter(x=>x.status==1).length
-  let Approved = opportunities.filter(x=>x.status==2).length
-  let Proposed = opportunities.filter(x=>x.status==3).length
-  let Won = opportunities.filter(x=>x.status==4).length
-  let Lost = opportunities.filter(x=>x.status==5).length
+  let New = opportunities.filter(x=>x.status==0 &&x.scope==0).length
+  let Funnel = opportunities.filter(x=>x.status==1 &&x.scope==0).length
+  let Approved = opportunities.filter(x=>x.status==2 &&x.scope==0).length
+  let Proposed = opportunities.filter(x=>x.status==3 &&x.scope==0).length
+  let Won = opportunities.filter(x=>x.status==4 &&x.scope==0).length
+  let Lost = opportunities.filter(x=>x.status==5 &&x.scope==0).length
   let total = New + Funnel +Approved+Proposed+Won+Lost
-  let wonPercentage = Won/total
-  let wonLoss = Won/Lost
+  let wonPercentage = Math.round((Won/total)*100)
+  let wonLoss = Math.round((Won/Lost)*100)
   ProposalBacklog.push(New)
   ProposalBacklog.push(Funnel)
   ProposalBacklog.push(Approved)
@@ -1915,43 +2066,61 @@ const GetBodyFWBacklogAmount = () =>{
 
 const GetProposalBacklogFWAmount = () =>{
   const ProposalBacklog =["Proposal Backlog"]
-  ProposalBacklog.push("-")
+  //ProposalBacklog.push("-")
+  let amountProposalLY = opportunities.filter(x=>calculateFY(x.firstProposalDate)<year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let amountContractLY = opportunities.filter(x=> calculateFY(x.contractSignatureDate)<year).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+  ProposalBacklog.push(amountProposalLY-amountContractLY)
   let amountProposal = 0;
   let amountContract = 0;
   for (let index = 1; index < 53; index++) {
     
-    amountProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-    amountContract += opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+    amountProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).reduce(function(y, z) { return y+ (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+    amountContract += opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate)==year).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
     //lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index).length
     ProposalBacklog.push(amountProposal-amountContract)
  }
+ let amountProposalNY = opportunities.filter(x=> calculateFY(x.firstProposalDate)>year).reduce(function(y, z) { return y+ (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let amountContractNY = opportunities.filter(x=> calculateFY(x.contractSignatureDate)>year).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+  ProposalBacklog.push(amountProposalNY-amountContractNY)
  return ProposalBacklog
 }
 
 const GetLostProposalFWAmount = () =>{
   const LostProposal =["Lost Proposals"]
-  LostProposal.push("-")
+  //LostProposal.push("-")
+  let lostContractLY = opportunities.filter(x=>x.status==5  && calculateFY(x.lostDate)<year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  LostProposal.push(lostContractLY)
   let lostContract = 0;
   for (let index = 1; index < 53; index++) {
-    lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+    lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index && calculateFY(x.lostDate)==year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
     LostProposal.push(lostContract)
  }
+ let lostContractNY = opportunities.filter(x=>x.status==5  && calculateFY(x.lostDate)>year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  LostProposal.push(lostContractNY)
  return LostProposal
 }
 
 const GetNetProposalBacklogFWAmount = () =>{
   const NetProposalBacklog =["Net Proposal Backlog"]
-  NetProposalBacklog.push("-")
+  //NetProposalBacklog.push("-")
+  let amountProposalLY = opportunities.filter(x=> calculateFY(x.firstProposalDate)<year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  let amountContractLY = opportunities.filter(x=>calculateFY(x.contractSignatureDate)<year).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+  let lostContractLY = opportunities.filter(x=>x.status==5 && calculateFY(x.lostDate)<year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+  NetProposalBacklog.push(amountProposalLY-amountContractLY-lostContractLY)
   let amountProposal = 0;
   let amountContract = 0;
   let lostContract = 0;
   for (let index = 1; index < 53; index++) {
     
-    amountProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
-    amountContract += opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
-    lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+    amountProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+    amountContract += opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index  && calculateFY(x.contractSignatureDate)==year).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+    lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index && calculateFY(x.lostDate)==year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
     NetProposalBacklog.push(amountProposal-amountContract-lostContract)
  }
+ let amountProposalNY = opportunities.filter(x=> calculateFY(x.firstProposalDate)>year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+ let amountContractNY = opportunities.filter(x=> calculateFY(x.contractSignatureDate)>year).reduce(function(y, z) { return y + (z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+ let lostContractNY = opportunities.filter(x=>x.status==5 &&  calculateFY(x.lostDate)>year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+ NetProposalBacklog.push(amountProposalNY-amountContractNY-lostContractNY)
  return NetProposalBacklog
 }
 
@@ -1982,57 +2151,85 @@ const GetBodyFWBacklogVolume = () =>{
 
 const GetLeadBacklogFWVolume = () =>{
    const LeadBacklog =["Lead Backlog"]
-   LeadBacklog.push("-")
+   //LeadBacklog.push("-")
+   let volumeLeadLY = opportunities.filter(x=> calculateFY(x.firstContactDate)<year).length
+   let volumeProposalLY = opportunities.filter(x=>calculateFY(x.firstProposalDate)<year).length
+   LeadBacklog.push(volumeLeadLY-volumeProposalLY)
    let volumeLead = 0;
    let volumeProposal = 0;
    for (let index = 1; index < 53; index++) {
-    volumeLead += opportunities.filter(x=>calculateFW(x.firstContactDate)==index).length
-    volumeProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index).length
+    volumeLead += opportunities.filter(x=>calculateFW(x.firstContactDate)==index && calculateFY(x.firstContactDate)==year).length
+    volumeProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).length
     LeadBacklog.push(volumeLead-volumeProposal)
   }
+  let volumeLeadNY = opportunities.filter(x=> calculateFY(x.firstContactDate)>year).length
+  let volumeProposalNY = opportunities.filter(x=> calculateFY(x.firstProposalDate)>year).length
+  LeadBacklog.push(volumeLeadNY-volumeProposalNY)
   return LeadBacklog
 }
 
 const GetProposalBacklogFWVolume = () =>{
   const ProposalBacklog =["Proposal Backlog"]
-  ProposalBacklog.push("-")
+  //ProposalBacklog.push("-")
+  let volumeProposalLY = opportunities.filter(x=> calculateFY(x.firstProposalDate)<year).length
+  let volumeContractLY = opportunities.filter(x=>calculateFY(x.contractSignatureDate)<year).length
+  //lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index).length
+  ProposalBacklog.push(volumeProposalLY-volumeContractLY)
   let volumeProposal = 0;
   let volumeContract = 0;
   for (let index = 1; index < 53; index++) {
     
-    volumeProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index).length
-    volumeContract += opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index).length
+    volumeProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).length
+    volumeContract += opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate)==year).length
     //lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index).length
     ProposalBacklog.push(volumeProposal-volumeContract)
  }
+ let volumeProposalNY = opportunities.filter(x=> calculateFY(x.firstProposalDate)>year).length
+ let volumeContractNY = opportunities.filter(x=> calculateFY(x.contractSignatureDate)>year).length
+ //lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index).length
+ ProposalBacklog.push(volumeProposalNY-volumeContractNY)
  return ProposalBacklog
 }
 
 const GetLostProposalFWVolume = () =>{
   const LostProposal =["Lost Proposal"]
-  LostProposal.push("-")
+ // LostProposal.push("-")
+ let lostContractLY = opportunities.filter(x=>x.status==5  && calculateFY(x.lostDate)<year).length
+ LostProposal.push(lostContractLY)
   let lostContract = 0;
   for (let index = 1; index < 53; index++) {
-    lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index).length
+    lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index && calculateFY(x.lostDate)==year).length
     LostProposal.push(lostContract)
  }
+ let lostContractNY = opportunities.filter(x=>x.status==5  && calculateFY(x.lostDate)>year).length
+ LostProposal.push(lostContractNY)
  return LostProposal
 }
 
 
 const GetNetProposalBacklogFWVolume = () =>{
   const NetProposalBacklog =["Net Proposal Backlog"]
-  NetProposalBacklog.push("-")
+ // NetProposalBacklog.push("-")
+ let volumeProposalLY = opportunities.filter(x=> calculateFY(x.firstProposalDate)<year).length
+ let volumeContractLY = opportunities.filter(x=> calculateFY(x.contractSignatureDate)<year).length
+ let lostContractLY = opportunities.filter(x=>x.status==5 && calculateFY(x.lostDate)<year).length
+ NetProposalBacklog.push(volumeProposalLY-volumeContractLY-lostContractLY)
+
   let volumeProposal = 0;
   let volumeContract = 0;
   let lostContract = 0;
   for (let index = 1; index < 53; index++) {
     
-    volumeProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index).length
-    volumeContract += opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index).length
-    lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index).length
+    volumeProposal += opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).length
+    volumeContract += opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate)==year).length
+    lostContract += opportunities.filter(x=>x.status==5 && calculateFW(x.lostDate)==index && calculateFY(x.lostDate)==year).length
     NetProposalBacklog.push(volumeProposal-volumeContract-lostContract)
  }
+
+ let volumeProposalNY = opportunities.filter(x=> calculateFY(x.firstProposalDate)<year).length
+ let volumeContractNY = opportunities.filter(x=> calculateFY(x.contractSignatureDate)>year).length
+ let lostContractNY = opportunities.filter(x=>x.status==5 &&  calculateFY(x.lostDate)>year).length
+ NetProposalBacklog.push(volumeProposalNY-volumeContractNY-lostContractNY)
  return NetProposalBacklog
 }
 
@@ -2056,14 +2253,16 @@ const exportClickWithFWVolume =  () => {
 
 const GetHeaderFW = () =>{
   const header = ["Type/FW"]
-  for (let index = 1; index < 54; index++) {
-    if(index==1)
-    {
-      header.push("LY")
-    }else{
+  header.push("LY")
+  for (let index = 1; index < 53; index++) {
+    // if(index==1)
+    // {
+    //   header.push("LY")
+    // }else{
     header.push(`FW${index}`)
-    }
+   // }
   }
+  header.push("NY")
   return header
 }
 
@@ -2074,28 +2273,35 @@ const GetBodyFWVolume = () =>{
 
 const GetNewLeadFWVolume = () =>{
    const NewLeadVolume =["New Lead"]
-   NewLeadVolume.push(0)
+  // NewLeadVolume.push(0)
+  NewLeadVolume.push(opportunities.filter(x=> calculateFY(x.firstContactDate) < year).length)
    for (let index = 1; index < 53; index++) {
-    NewLeadVolume.push(opportunities.filter(x=>calculateFW(x.firstContactDate)==index && calculateFY(x.firstContactDate) == currentYear()).length)
+    NewLeadVolume.push(opportunities.filter(x=>calculateFW(x.firstContactDate)==index && calculateFY(x.firstContactDate) == year).length)
   }
+
+  NewLeadVolume.push(opportunities.filter(x=> calculateFY(x.firstContactDate) > year).length)
   return NewLeadVolume
 }
 
 const GetNewProposalFWVolume = () =>{
   const NewProposalVolume =["New Proposal"]
-  NewProposalVolume.push(0)
+  //NewProposalVolume.push(0)
+  NewProposalVolume.push(opportunities.filter(x=> calculateFY(x.firstProposalDate) < year).length)
   for (let index = 1; index < 53; index++) {
-    NewProposalVolume.push(opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate) == currentYear()).length)
+    NewProposalVolume.push(opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate) == year).length)
  }
+ NewProposalVolume.push(opportunities.filter(x=> calculateFY(x.firstProposalDate) > year).length)
  return NewProposalVolume
 }
 
 const GetNewContractFWVolume = () =>{
   const NewContractVolume =["New Contract"]
-  NewContractVolume.push(0)
+  //NewContractVolume.push(0)
+  NewContractVolume.push(opportunities.filter(x=> calculateFY(x.contractSignatureDate) < year).length)
   for (let index = 1; index < 53; index++) {
-    NewContractVolume.push(opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate) == currentYear()).length)
+    NewContractVolume.push(opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate) == year).length)
  }
+ NewContractVolume.push(opportunities.filter(x=>calculateFY(x.contractSignatureDate) > year).length)
  return NewContractVolume
 }
 
@@ -2126,19 +2332,23 @@ const GetBodyFWAmount = () =>{
 
 const GetNewProposalAmount = () =>{
   const NewProposalAmount =["New Proposal"]
-  NewProposalAmount.push(0)
+ // NewProposalAmount.push(0)
+ NewProposalAmount.push(opportunities.filter(x=> calculateFY(x.firstProposalDate)<year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
   for (let index = 1; index < 53; index++) {
-    NewProposalAmount.push(opportunities.filter(x=>calculateFW(x.firstProposalDate)==index).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
+    NewProposalAmount.push(opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
  }
+ NewProposalAmount.push(opportunities.filter(x=> calculateFY(x.firstProposalDate)>year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
  return NewProposalAmount
 }
 
 const GetNewContractAmount = () =>{
   const NewContractAmount =["New Contract"]
-  NewContractAmount.push(0)
+ // NewContractAmount.push(0)
+ NewContractAmount.push(opportunities.filter(x=> calculateFY(x.contractSignatureDate)<year).reduce(function(y, z) { return y +(z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0))
   for (let index = 1; index < 53; index++) {
-    NewContractAmount.push(opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) +(z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0))
+    NewContractAmount.push(opportunities.filter(x=>calculateFW(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate)==year).reduce(function(y, z) { return y +(z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0))
  }
+ NewContractAmount.push(opportunities.filter(x=>calculateFY(x.contractSignatureDate)>year).reduce(function(y, z) { return y +(z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0))
  return NewContractAmount
 }
 
@@ -2185,27 +2395,27 @@ const GetBodyFMVolume = () =>{
 
 const GetNewLeadFMVolume = () =>{
    const NewLeadVolume =["New Lead"]
-   NewLeadVolume.push(0)
+   NewLeadVolume.push("-")
    for (let index = 1; index < 13; index++) {
-    NewLeadVolume.push(opportunities.filter(x=>calculateFM(x.firstContactDate)==index).length)
+    NewLeadVolume.push(opportunities.filter(x=>calculateFM(x.firstContactDate)==index && calculateFY(x.firstContactDate)==year).length)
   }
   return NewLeadVolume
 }
 
 const GetNewProposalFMVolume = () =>{
   const NewProposalVolume =["New Proposal"]
-  NewProposalVolume.push(0)
+  NewProposalVolume.push("-")
   for (let index = 1; index < 13; index++) {
-    NewProposalVolume.push(opportunities.filter(x=>calculateFM(x.firstProposalDate)==index).length)
+    NewProposalVolume.push(opportunities.filter(x=>calculateFM(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).length)
  }
  return NewProposalVolume
 }
 
 const GetNewContractFMVolume = () =>{
   const NewContractVolume =["New Contract"]
-  NewContractVolume.push(0)
+  NewContractVolume.push("-")
   for (let index = 1; index < 13; index++) {
-    NewContractVolume.push(opportunities.filter(x=>calculateFM(x.contractSignatureDate)==index).length)
+    NewContractVolume.push(opportunities.filter(x=>calculateFM(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate)==year).length)
  }
  return NewContractVolume
 }
@@ -2237,18 +2447,18 @@ const GetBodyFMAmount = () =>{
 
 const GetNewProposalFMAmount = () =>{
   const NewProposalAmount =["New Proposal"]
-  NewProposalAmount.push(0)
+  NewProposalAmount.push("-")
   for (let index = 1; index < 13; index++) {
-    NewProposalAmount.push(opportunities.filter(x=>calculateFM(x.firstProposalDate)==index).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
+    NewProposalAmount.push(opportunities.filter(x=>calculateFM(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
  }
  return NewProposalAmount
 }
 
 const GetNewContractFMAmount = () =>{
   const NewContractAmount =["New Contract"]
-  NewContractAmount.push(0)
+  NewContractAmount.push("-")
   for (let index = 1; index < 13; index++) {
-    NewContractAmount.push(opportunities.filter(x=>calculateFM(x.contractSignatureDate)==index).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) +(z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0))
+    NewContractAmount.push(opportunities.filter(x=>calculateFM(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate)==year).reduce(function(y, z) { return y +(z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0))
  }
  return NewContractAmount
 }
@@ -2292,10 +2502,10 @@ const GetBodyYTDVolume = () =>{
 
 const GetNewLeadYTDVolume = () =>{
    const NewLeadVolume =["New Lead"]
-   NewLeadVolume.push(0)
+   NewLeadVolume.push("-")
    let volume = 0;
    for (let index = 1; index < 13; index++) { 
-    volume += opportunities.filter(x=>calculateFM(x.firstContactDate)==index).length
+    volume += opportunities.filter(x=>calculateFM(x.firstContactDate)==index && calculateFY(x.firstContactDate)==year).length
     NewLeadVolume.push(volume)
   }
   return NewLeadVolume
@@ -2303,10 +2513,10 @@ const GetNewLeadYTDVolume = () =>{
 
 const GetNewProposalYTDVolume = () =>{
   const NewProposalVolume =["New Proposal"]
-  NewProposalVolume.push(0)
+  NewProposalVolume.push("-")
   let volume = 0;
   for (let index = 1; index < 13; index++) {
-    volume += opportunities.filter(x=>calculateFM(x.firstProposalDate)==index).length
+    volume += opportunities.filter(x=>calculateFM(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).length
     NewProposalVolume.push(volume)
  }
  return NewProposalVolume
@@ -2314,10 +2524,10 @@ const GetNewProposalYTDVolume = () =>{
 
 const GetNewContractYTDVolume = () =>{
   const NewContractVolume =["New Contract"]
-  NewContractVolume.push(0)
+  NewContractVolume.push("-")
   let volume = 0;
   for (let index = 1; index < 13; index++) {
-    volume += opportunities.filter(x=>calculateFM(x.contractSignatureDate)==index).length
+    volume += opportunities.filter(x=>calculateFM(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate)==year).length
     NewContractVolume.push(volume)
  }
  return NewContractVolume
@@ -2350,10 +2560,10 @@ const GetBodyYTDAmount = () =>{
 
 const GetNewProposalYTDAmount = () =>{
   const NewProposalAmount =["New Proposal"]
-  NewProposalAmount.push(0)
+  NewProposalAmount.push("-")
   let amount =0;
   for (let index = 1; index < 13; index++) {
-    amount+= opportunities.filter(x=>calculateFM(x.firstProposalDate)==index).reduce(function(y, z) { return (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0) + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
+    amount+= opportunities.filter(x=>calculateFM(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0)
     NewProposalAmount.push(amount)
  }
  return NewProposalAmount
@@ -2361,10 +2571,10 @@ const GetNewProposalYTDAmount = () =>{
 
 const GetNewContractYTDAmount = () =>{
   const NewContractAmount =["New Contract"]
-  NewContractAmount.push(0)
+  NewContractAmount.push("-")
   let amount =0;
   for (let index = 1; index < 13; index++) {
-    amount+=opportunities.filter(x=>calculateFM(x.contractSignatureDate)==index).reduce(function(y, z) { return (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0) +(z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
+    amount+=opportunities.filter(x=>calculateFM(x.contractSignatureDate)==index && calculateFY(x.contractSignatureDate)==year).reduce(function(y, z) { return y +(z.finalContractValue ? convertCurrency(z.finalContractValue,z.finalContractValueCurrency,toCurrency) : 0) }, 0)
     NewContractAmount.push(amount)
  }
  return NewContractAmount
@@ -2400,11 +2610,11 @@ const exportClickWithCalc =  () => {
           FirstContactFW:calculateFW(x.firstContactDate), 
           FirstProposalFW:calculateFW(x.firstProposalDate), 
           ContractSignatureFW:calculateFW(x.contractSignatureDate), 
-          FirstContractToProposalCCT1:subtractTwoDates(x.firstContactDate,x.firstProposalDate), 
-          PorposalToContractCCT2:subtractTwoDates(x.firstProposalDate,x.contractSignatureDate), 
-          DiscountRate:(1 - (x.FinalContractValue /x.firstProposalValue)), 
-          RunRate:x.retainerValidatity!=null && x.retainerValidatity!=""? x.finalContractValue/x.retainerValidatity:"NA", 
-          RunWay:x.retainerValidatity!=null && x.retainerValidatity!=""?x.retainerValidatity/12:"NA", 
+          FirstContractToProposalCCT1:x.firstProposalDate?subtractTwoDates(x.firstContactDate,x.firstProposalDate):"", 
+          PorposalToContractCCT2:x.contractSignatureDate?subtractTwoDates(x.firstProposalDate,x.contractSignatureDate):"", 
+          DiscountRate:x.finalContractValue? `${Math.round((1 - (x.finalContractValue /x.firstProposalValue))*100)}%` :"", 
+          RunRate:x.retainerValidatity!=null && x.retainerValidatity!=""? x.finalContractValue/x.retainerValidatity:"", 
+          RunWay:x.retainerValidatity!=null && x.retainerValidatity!=""?x.retainerValidatity/12:"", 
           ProposalCNC:x.firstProposalValueCurrency?Currencies.find(y=>y.value==x.firstProposalValueCurrency).label:"", 
           ContractCNC:x.finalContractValueCurrency?Currencies.find(y=>y.value==x.finalContractValueCurrency).label:""
         }))
@@ -2502,12 +2712,12 @@ const calculateFW = (date) =>{
   var weekNumber = Math.ceil(days / 7);
 
   // Display the calculated result       
-  return weekNumber
+  return weekNumber+1
 }
 
 const calculateFM = (date) =>{
   var currentDate = new Date(date);
-  return currentDate.getMonth()
+  return currentDate.getMonth()+1
 }
 
 const calculateFY = (date) =>{
@@ -2518,6 +2728,12 @@ const calculateFY = (date) =>{
 const currentYear = () =>{
   var currentDate = new Date(Date.now);
   return currentDate.getFullYear()
+}
+
+const handleChangeInputDate =   (date, dateString) => {
+  // setWeek(calculateFW(dateString))
+  // setMonth(calculateFM(dateString))
+  setYear(calculateFY(dateString))
 }
  
 
@@ -2587,6 +2803,23 @@ const currentYear = () =>{
          
            </Col>
 
+           <Col className="gutter-row" span={6}>
+       <Form.Item
+         label=""
+         name="inputDate"
+         rules={[
+           {
+             required: true,
+             message: 'Please enter input date!',
+           },
+         ]}
+       
+       >
+          <DatePicker style={{ width: 295 }}  placeholder="Enter input date" onChange={handleChangeInputDate}   />
+          </Form.Item>
+    
+           </Col>
+
            <Col className="gutter-row" span={4}>
          <Form.Item>
          <RangePicker name="searchDates" onChange={handleChangeSearchDates} />
@@ -2602,7 +2835,7 @@ const currentYear = () =>{
 <Button  onClick={exportClickWithCalc}   disabled={actionLoading} type="primary" >Basic calculation</Button>
 
 </Col>
-
+{/* 
 <Col className="gutter-row" span={2.5}> 
 
 <Button  onClick={exportClickWithFWVolume}   disabled={actionLoading} type="primary" >FW volume</Button>
@@ -2693,11 +2926,11 @@ const currentYear = () =>{
 
 <Button  onClick={exportClickWithOpportunitiesCCTPercentileRetainer}   disabled={actionLoading} type="primary" >Opprotunities CCT1/2 percentile Retainer</Button>
 
-</Col> 
+</Col>  */}
 
 <Col className="gutter-row" span={2}> 
 
-<Button  onClick={exportAll}   disabled={actionLoading} type="primary" >Export All</Button>
+<Button  onClick={exportAll}   disabled={actionLoading} type="primary" >Commercial Engine</Button>
 
 </Col> 
 

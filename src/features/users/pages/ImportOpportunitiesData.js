@@ -4,7 +4,7 @@ import { ExcelRenderer } from "react-excel-renderer";
 import { EditableCell } from "../../Common/Components/Excel/EditableCell";
 import { EditableFormRow} from "../../Common/Components/Excel/EditableFormRow";
 import moment from 'moment';
-import { useImportOpportunitiesMutation } from "../slices/userApiSlice"
+import { useImportOpportunitiesMutation,useImportCompaniesMutation } from "../slices/userApiSlice"
 import { downloadExcel } from "react-export-table-to-excel"
 import {OpportunityStatuses,OpportunitySources,ClientStatuses,OpportunityScopes, Currencies} from "../../Common/lookups";
 
@@ -128,10 +128,13 @@ function ImportOpportunitiesData() {
 
     
    const [actionLoading, setActionLoading] = useState(false)
+   const [basicDataSubmitted, setBasicDataSubmitted] = useState(false)
    const key = 'updatable';
 
 
   const [importOpportunities] = useImportOpportunitiesMutation()
+  const [importCompanies] = useImportCompaniesMutation()
+  
 
   const showLoadingMessage  = (msg)=>{
     message.loading({
@@ -277,15 +280,105 @@ function ImportOpportunitiesData() {
     return false;
   };
 
+
+
+
+const  handleSubmitCompanies = async () => {
+
+  setActionLoading(true)
+  showLoadingMessage('loading...')
+
+  const companies = [
+  //   {
+  //   Name:rows[0].company.split("-")[0].trim(),
+  //   LineOfBusinesses: [{
+  //     Name:rows[0].company.split("-")[1].trim(),
+  //     Company:{Name:rows[0].company.split("-")[0].trim()},
+  //     Clients: []
+  //   }] ,
+    
+  // }
+]
+  rows.forEach(row => 
+  //   {
+  //   if(!companies[0].LineOfBusinesses[0].Clients.find(x=>x.Name==row.client)){
+  //   companies[0].LineOfBusinesses[0].Clients.push({Name:row.client})
+  //   }
+  // }
+    {
+    console.log(companies)
+    var compIndx = -1
+    var lobIndx = -1
+    var clientIndx = -1
+    compIndx = companies.findIndex(x=>x.Name===row.company.split("-")[0].trim())
+    console.log(compIndx)
+    if(compIndx!=-1){
+      lobIndx = companies[compIndx].LineOfBusinesses.findIndex(x=>x.Name==row.company.split("-")[1].trim())
+    }
+    if(lobIndx!=-1){
+      clientIndx = companies[compIndx].LineOfBusinesses[lobIndx].Clients.findIndex(x=>x.Name==row.client)
+    }
+    if(compIndx ==-1){
+    companies.push({
+      Name:row.company.split("-")[0].trim(),
+      LineOfBusinesses: [{
+        Name:row.company.split("-")[1].trim(),
+        //Company:{Name:row.company.split("-")[0].trim()},
+        Clients: [{Name:row.client}],
+        Milestones: []
+      }] ,
+      
+    })
+  }else if(lobIndx==-1){
+    companies[compIndx].LineOfBusinesses.push({
+      Name:row.company.split("-")[1].trim(),
+      //Company:{Name:row.company.split("-")[0].trim()},
+      Clients: [{Name:row.client}],
+      Milestones: []
+    })
+  }else if (clientIndx==-1){
+    companies[compIndx].LineOfBusinesses[lobIndx].Clients.push({Name:row.client})
+  }
+  }
+  );
+
+  console.log(companies)
+
+  var result = await importCompanies(companies).unwrap()
+  
+    //await exportOpportunities({ status:searchStatus ,lineOfBusinessesIds:searchLineOfBusinessIds,fromDate:searchDateFrom!=""? searchDateFrom:null,toDate:searchDateTo!=""?searchDateTo:null}).unwrap()
+    downloadExcel({
+      fileName: "Companies-Import-Report",
+      sheet: "Companies",
+      tablePayload: {
+        header: [ "State", "Company", "Client"],
+        // accept two different data structures
+        body: companies.map((row,i)=>({
+          //key: i+2,
+          state: result[i]? "Success":"Error",
+          company: row.company,
+          client: row.client,
+        }))
+      }
+    });
+    
+   setBasicDataSubmitted(true)
+    setActionLoading(false)
+    showMessage('Companies imported successfully!')
+
+  };
+
 const  handleSubmit = async () => {
 
   setActionLoading(true)
   showLoadingMessage('loading...')
 
+
+
   const opportunities = rows.map(row=>({
     LineOfBusiness: {
-      Name:row.company.split("-")[1],
-      Company:{Name:row.company.split("-")[0]}} ,
+      Name:row.company.split("-")[1].trim(),
+      Company:{Name:row.company.split("-")[0].trim()}} ,
     Client: {Name:row.client},
     ProjectName: row.projectName,
     ClientStatus: ClientStatuses.find(x=>x.label==row.clientStatus).value,
@@ -330,25 +423,30 @@ console.log(result)
     
    
 
-    setRows(rows.map((row,i)=>({
-      key: i,
-     // state: result[i].message,
-      company: row.company,
-      client: row.client,
-      projectName: row.projectName,
-      clientStatus: row.clientStatus,
-      source: row.source,
-      scope: row.scope,
-      status: row.status,
-      firstContactDate: row.firstContactDate,//? ExcelDateToJSDate(row.firstContactDate): null,
-      firstProposalDate: row.firstProposalDate,//? ExcelDateToJSDate(row.firstProposalDate): null,
-      firstProposalValue: row.firstProposalValue,
-      firstProposalValueCurrency: row.firstProposalValueCurrency,
-      contractSignatureDate: row.contractSignatureDate,//? ExcelDateToJSDate(row.contractSignatureDate):null,
-      finalContractValue: row.finalContractValue,
-      finalContractValueCurrency: row.finalContractValueCurrency,
-      retainerValidatity: row.retainerValidatity,
-    })))
+    // setRows(rows.map((row,i)=>({
+    //   key: i,
+    //  // state: result[i].message,
+    //   company: row.company,
+    //   client: row.client,
+    //   projectName: row.projectName,
+    //   clientStatus: row.clientStatus,
+    //   source: row.source,
+    //   scope: row.scope,
+    //   status: row.status,
+    //   firstContactDate: row.firstContactDate,//? ExcelDateToJSDate(row.firstContactDate): null,
+    //   firstProposalDate: row.firstProposalDate,//? ExcelDateToJSDate(row.firstProposalDate): null,
+    //   firstProposalValue: row.firstProposalValue,
+    //   firstProposalValueCurrency: row.firstProposalValueCurrency,
+    //   contractSignatureDate: row.contractSignatureDate,//? ExcelDateToJSDate(row.contractSignatureDate):null,
+    //   finalContractValue: row.finalContractValue,
+    //   finalContractValueCurrency: row.finalContractValueCurrency,
+    //   retainerValidatity: row.retainerValidatity,
+    // })))
+
+    setRows([])
+
+    setBasicDataSubmitted(false)
+    setActionLoading(false)
     showMessage('Opportunities imported successfully!')
 
   };
@@ -467,14 +565,24 @@ useEffect( () =>{
                   Add a row
                 </Button>{" "} */}
                 <Button
+                  onClick={handleSubmitCompanies}
+                  size="large"
+                  type="primary"
+                  style={{ marginBottom: 16, marginLeft: 10 }}
+                  disabled={actionLoading}
+                >
+                  Submit Basic Data
+                </Button>
+               {basicDataSubmitted? (<Button
                   onClick={handleSubmit}
                   size="large"
                   type="primary"
                   style={{ marginBottom: 16, marginLeft: 10 }}
                   disabled={actionLoading}
                 >
-                  Submit Data
-                </Button>
+                  Submit Opportunities
+                </Button>) : null}
+                
               </>
             )}
           </Col>

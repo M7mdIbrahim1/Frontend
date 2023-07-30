@@ -323,7 +323,7 @@ function CreateProject() {
           },
         ]}
        >
-    <InputNumber disabled={!checkedState[i]} min={1}    onChange={(e)=>handleChangeMilestoneIndex(i,e)} />
+    <InputNumber disabled={true} min={1}    onChange={(e)=>handleChangeMilestoneIndex(i,e)} />
     </Form.Item>
     </Col>
 

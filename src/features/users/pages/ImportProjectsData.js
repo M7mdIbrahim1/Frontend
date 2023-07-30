@@ -4,7 +4,7 @@ import { ExcelRenderer } from "react-excel-renderer";
 import { EditableCell } from "../../Common/Components/Excel/EditableCell";
 import { EditableFormRow} from "../../Common/Components/Excel/EditableFormRow";
 import moment from 'moment';
-import { useImportProjectsMutation,useGetCompaniesMutation } from "../slices/userApiSlice"
+import { useImportProjectsMutation,useGetCompaniesMutation,useImportCompaniesMutation } from "../slices/userApiSlice"
 import { downloadExcel } from "react-export-table-to-excel"
 
 import {
@@ -159,6 +159,7 @@ const [numberOfMilestones, setNumberOfMilestones] = useState(-1)
 
     
 const [actionLoading, setActionLoading] = useState(false)
+const [basicDataSubmitted, setBasicDataSubmitted] = useState(false)
 const [freeTextCompany, setFreeTextCompany] = useState(false)
 //const [showMilestones, setShowMilestones] = useState(false)
 const key = 'updatable';
@@ -172,6 +173,7 @@ const handleChangeFreeTextCompany =   (e) => {
 }
 
   const [importProjects] = useImportProjectsMutation()
+  const [importCompanies] = useImportCompaniesMutation()
 
 
   const showLoadingMessage  = (msg)=>{
@@ -461,14 +463,100 @@ const handleChangeFreeTextCompany =   (e) => {
       if(row[newMilestoneDateScheduled] || row[newMilestoneDateActual]){
 
         projectMilestones.push({
-            Name:columns[((index-1)*2)+8].title.split('-')[0],
+            Name:columns[((index-1)*2)+8].title.split('-')[0].trim(),
             DateScheduled:row[newMilestoneDateScheduled]? row[newMilestoneDateScheduled] : row[newMilestoneDateActual],//row[index+7],
-            DateActual:row[newMilestoneDateActual]//row[index+8]
+            DateActual:row[newMilestoneDateActual],//row[index+8]
+           // Status: ProjectStatuses.find(x=>x.label==row.status.split('-')[0].trim()).value ==3? 2 : (row.status.split('-')[1].trim() == `${index}`  ? 1 : (row.status.split('-')[1].trim() < `${index}`? 2: 0)),
+            MilestoneIndex:index,
+            Start:index==1,
+            End:index==numberOfMilestones,
         })
       }
     }
     return projectMilestones
   }
+
+  
+  const getLOBMilestones = (row) => {
+    const lobMilestones=[]
+    for (let index = 1; index <= numberOfMilestones; index++) {
+
+      
+
+        lobMilestones.push({
+            Name:columns[((index-1)*2)+8].title.split('-')[0].trim(),
+            Description:"Imported through migration",
+            NeedPayment:false
+        })
+      
+    }
+    return lobMilestones
+  }
+
+  const  handleSubmitCompanies = async () => {
+
+    setActionLoading(true)
+    showLoadingMessage('loading...')
+  
+    const companies = []
+    rows.forEach(row => {
+      var compIndx = -1
+      var lobIndx = -1
+      var clientIndx = -1
+      compIndx = companies.indexOf(x=>x.Name==companyName)
+      if(compIndx!=-1){
+        lobIndx = companies[compIndx].indexOf(x=>x.Name==lobName)
+      }
+      if(lobIndx!=-1){
+        clientIndx = companies[compIndx].LineOfBusinesses[lobIndx].Clients.indexOf(x=>x.Name==row.client)
+      }
+      if(compIndx ==-1){
+      companies.push({
+        Name:companyName,
+        LineOfBusinesses: [{
+          Name:lobName,
+          Milestones:getLOBMilestones(row),
+          //Company:{Name:row.company.split("-")[0]},
+          Clients: [{Name:row.client}]
+        }] ,
+        
+      })
+    }else if(lobIndx==-1){
+      companies[compIndx].push({LineOfBusinesses: [{
+        Name:lobName,
+        Milestones:getLOBMilestones(row),
+       // Company:{Name:row.company.split("-")[0]},
+        Clients: [{Name:row.client}]
+      }]})
+    }else if (clientIndx==-1){
+      companies[compIndx].LineOfBusinesses[lobIndx].Clients.push(row.client)
+    }
+    });
+  
+    var result = await importCompanies(companies).unwrap()
+    
+      //await exportOpportunities({ status:searchStatus ,lineOfBusinessesIds:searchLineOfBusinessIds,fromDate:searchDateFrom!=""? searchDateFrom:null,toDate:searchDateTo!=""?searchDateTo:null}).unwrap()
+      downloadExcel({
+        fileName: "Companies-Import-Report",
+        sheet: "Companies",
+        tablePayload: {
+          header: [ "State", "Company", "Client"],
+          // accept two different data structures
+          body: companies.map((row,i)=>({
+            //key: i+2,
+            state: result[i]? "Success":"Error",
+            company: `${companyName} - ${lobName}`,
+            client: row.client,
+          }))
+        }
+      });
+      
+     
+      setBasicDataSubmitted(true)
+      setActionLoading(false)
+      showMessage('Companies imported successfully!')
+  
+    };
 
 const  handleSubmit = async () => {
     console.log("submitting: ", rows);
@@ -485,6 +573,16 @@ const  handleSubmit = async () => {
         //alert("please fill company/lob and number of milstones")
     }else{
 
+      var firstMilestoneDateScheduled = `milestone${1}DateScheduled` ;
+      var firstMilestoneDateActual = `milestone${1}DateActual` ;
+  
+      var lastMilestoneDateScheduled = `milestone${numberOfMilestones}DateScheduled` ;
+      var lastMilestoneDateActual = `milestone${numberOfMilestones}DateActual` ;
+
+      console.log(rows[0].status)
+      console.log(rows[0].status.split('-')[0].trim())
+      console.log(ProjectStatuses)
+      console.log(ProjectStatuses.find(x=>x.label==rows[0].status.split('-')[0].trim()).value)
     const projects = rows.map(row=>({
               LineOfBusiness: {
                 Name:lobName,
@@ -492,13 +590,22 @@ const  handleSubmit = async () => {
               Client: {Name:row.client},
               ProjectName: row.projectName,
               Scope: ProjectScopes.find(x=>x.label==row.scope).value,
-              Status: ProjectStatuses.find(x=>x.label==row.status).value,
+              Status: ProjectStatuses.find(x=>x.label==row.status.split('-')[0].trim()).value,
               ContractSignatureDate: row.contractSignatureDate,
               ContractValue: row.contractValue,
               ContractValueCurrency: row.ContractValueCurrency?Currencies.find(x=>x.desc==row.ContractValueCurrency).value:null ,
               RetainerValidatity: row.retainerValidatity,
-              ProjectMilestones:getProjectMilestones(row)
+              ProjectMilestones:getProjectMilestones(row),
+              CurrentProjectMilestoneIndex:ProjectScopes.find(x=>x.label==row.scope).value == 0 ? (row.status.search('-') !=-1? row.status.split('-')[1].trim(): numberOfMilestones) : 0,
+              MilestoneCount:numberOfMilestones,
+              KickOffDateScheduled:row[firstMilestoneDateScheduled]? row[firstMilestoneDateScheduled] : row[firstMilestoneDateActual],
+              KickOffDateActual:row[firstMilestoneDateActual],
+              CompletionDateScheduled:row[lastMilestoneDateScheduled]? row[lastMilestoneDateScheduled] : row[lastMilestoneDateActual],
+              CompletionDateActual:row[lastMilestoneDateActual],
+              
     }))
+
+
 
     console.log(projects)
 
@@ -522,28 +629,35 @@ const  handleSubmit = async () => {
       }
     });
 
-    const newRows =[]
-    rows.forEach((row,i) => {
+    // const newRows =[]
+    // rows.forEach((row,i) => {
       
-      const newRow = {
-        key: i,
-        //state: result[i],
-        company: `${companyName} - ${lobName}`,
-        client: row.client,
-        projectName: row.projectName,
-        scope: row.scope,
-        status: row.status,
-        contractSignatureDate: row.contractSignatureDate,
-        contractValue: row.contractValue,
-        currency: row.currency,
-        retainerValidatity: row.retainerValidatity,
-      }
-      newRows.push(pushMilestones(newRow,row));
+    //   const newRow = {
+    //     key: i,
+    //     //state: result[i],
+    //     company: `${companyName} - ${lobName}`,
+    //     client: row.client,
+    //     projectName: row.projectName,
+    //     scope: row.scope,
+    //     status: row.status,
+    //     contractSignatureDate: row.contractSignatureDate,
+    //     contractValue: row.contractValue,
+    //     currency: row.currency,
+    //     retainerValidatity: row.retainerValidatity,
+    //   }
+    //   newRows.push(pushMilestones(newRow,row));
       
-    });
+    // });
    
   
-    setRows(newRows)
+    // setRows(newRows)
+
+    setRows([])
+    setColumns([])
+    setCols([])
+
+    setBasicDataSubmitted(false)
+    setActionLoading(false)
     showMessage('Projects imported successfully!')
 
 
@@ -754,15 +868,26 @@ const filter = (inputValue, path) =>
                 <PlusOutlined />
                   Add a row
                 </Button>{" "} */}
-                <Button
+                  <Button
+                  onClick={handleSubmitCompanies}
+                  size="large"
+                  type="primary"
+                  style={{ marginBottom: 16, marginLeft: 10 }}
+                  disabled={actionLoading}
+                >
+                  Submit Basic Data
+                </Button>
+
+                {basicDataSubmitted? (<Button
                   onClick={handleSubmit}
                   size="large"
                   type="primary"
                   style={{ marginBottom: 16, marginLeft: 10 }}
                   disabled={actionLoading}
                 >
-                  Submit Data
-                </Button>
+                  Submit Projects
+                </Button>) : null}
+               
               </>
             )}
           </Col>

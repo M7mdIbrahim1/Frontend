@@ -39,7 +39,7 @@ export const projectApiSlice = apiSlice.injectEndpoints({
         }),
         getCompanies: builder.mutation({
             query: companySearchModelView => ({
-                url: '/GetAllCompanies',
+                url: '/Company/GetCompanies',
                 method: 'POST',
                 body:companySearchModelView
             })

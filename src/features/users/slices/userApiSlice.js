@@ -54,6 +54,13 @@ export const userApiSlice = apiSlice.injectEndpoints({
                 body:opportunitiesModelView
             })
         }),
+        importCompanies: builder.mutation({
+            query: companiesModelView => ({
+                url: '/Company/ImportCompanies',
+                method: 'POST',
+                body:companiesModelView
+            })
+        }),
         importProjects: builder.mutation({
             query: projectsModelView => ({
                 url: '/ImportProjects',
@@ -76,5 +83,6 @@ export const {
    useAssignCompanyToUsersMutation,
    useAssignRolesToUsersMutation,
    useImportOpportunitiesMutation,
-   useImportProjectsMutation
+   useImportProjectsMutation,
+   useImportCompaniesMutation
 } = userApiSlice 
