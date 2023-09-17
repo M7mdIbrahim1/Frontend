@@ -3,7 +3,7 @@ import { setCredentials, logOut } from '../../features/auth/slices/authSlice'
 import { selectCurrentToken} from "../../features/auth/slices/authSlice"
 
 const baseQuery = fetchBaseQuery({
-    baseUrl: 'http://3.75.235.121/:5093',
+    baseUrl: 'http://3.75.235.121:5093',
   // baseUrl: 'https://leveragefc-backend.onrender.com',
     credentials: 'include',
     prepareHeaders: (headers, { getState }) => {
