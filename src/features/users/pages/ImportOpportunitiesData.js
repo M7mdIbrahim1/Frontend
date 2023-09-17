@@ -389,6 +389,8 @@ const  handleSubmit = async () => {
     FirstProposalDate: row.firstProposalDate,//?ExcelDateToJSDate(row.firstProposalDate):null,
     FirstProposalValue: row.firstProposalValue,
     FirstProposalValueCurrency:  row.firstProposalValueCurrency?Currencies.find(x=>x.desc==row.firstProposalValueCurrency).value:null,
+    CurrentProposalValue: row.firstProposalValue,
+    CurrentProposalValueCurrency:  row.firstProposalValueCurrency?Currencies.find(x=>x.desc==row.firstProposalValueCurrency).value:null,
     ContractSignatureDate: row.contractSignatureDate,//?ExcelDateToJSDate(row.contractSignatureDate):null,
     FinalContractValue: row.finalContractValue,
     FinalContractValueCurrency: row.finalContractValueCurrency?Currencies.find(x=>x.desc==row.finalContractValueCurrency).value:null,

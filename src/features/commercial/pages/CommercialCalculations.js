@@ -199,38 +199,32 @@ const fixedTestRates = [
   },
 ]
 
+
 const convertCurrency = (amount, from, to) =>{
   const toCurrency = mapCurrency(to)
   const fromCurrency = mapCurrency(from)
 
   const fromRate = fixedTestRates.find(x=>x.from==fromCurrency)
   const toRate = fixedTestRates.find(x=>x.from==toCurrency)
+  
   if(fromRate && toRate){
-    var toEGP = amount*fromRate.rate
-    return toEGP*toRate.rate
+    var toEGP = 0
+    if(fromCurrency!="EGP"){
+    toEGP = amount*fromRate.rate
+    }else{
+      toEGP=amount
+    }
+    return toEGP/toRate.rate
   }
   else 
   {
     return 0
   }
+
   
 }
 
-// const convertCurrency = async (amount, from, to) => {
-//   const toCurrency = mapCurrency(to)
-//   const fromCurrency = mapCurrency(from)
-//   const res = await axios.get(`https://v6.exchangerate-api.com/v6/fa70421a4a77ced555e79d5a/latest/${toCurrency}`)
-//   if(res){
-//     const rate = res.conversion_rates[fromCurrency]
-//     if(rate){
-//     return amount*rate
-//     }else{
-//       return 0
-//     }
-//   }else{
-//     return 0
-//   }
-// }
+
 
 const mapCurrency = (currency) =>{
   switch (currency) {
@@ -2333,7 +2327,14 @@ const GetBodyFWAmount = () =>{
 const GetNewProposalAmount = () =>{
   const NewProposalAmount =["New Proposal"]
  // NewProposalAmount.push(0)
- NewProposalAmount.push(opportunities.filter(x=> calculateFY(x.firstProposalDate)<year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
+ NewProposalAmount.push(Math.round(opportunities.filter(x=> calculateFY(x.firstProposalDate)<year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
+ 
+//  .toLocaleString('en-US', {
+//   style: 'currency',
+//   currency: mapCurrency(currency),
+// })
+)
+
   for (let index = 1; index < 53; index++) {
     NewProposalAmount.push(opportunities.filter(x=>calculateFW(x.firstProposalDate)==index && calculateFY(x.firstProposalDate)==year).reduce(function(y, z) { return y + (z.firstProposalValue ? convertCurrency(z.firstProposalValue,z.firstProposalValueCurrency,toCurrency) : 0) }, 0))
  }

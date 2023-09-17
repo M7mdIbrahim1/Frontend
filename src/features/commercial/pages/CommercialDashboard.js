@@ -361,36 +361,26 @@ const convertCurrency = (amount, from, to) =>{
 
   const fromRate = fixedTestRates.find(x=>x.from==fromCurrency)
   const toRate = fixedTestRates.find(x=>x.from==toCurrency)
+  
   if(fromRate && toRate){
-    var toEGP = amount*fromRate.rate
-    return toEGP*toRate.rate
+    var toEGP = 0
+    if(fromCurrency!="EGP"){
+    toEGP = amount*fromRate.rate
+    }else{
+      toEGP=amount
+    }
+    return toEGP/toRate.rate
   }
   else 
   {
     return 0
   }
+
   
 }
 
 
-// const convertCurrency = async (amount, from, to) => {
-//   const toCurrency = mapCurrency(to)
-//   const fromCurrency = mapCurrency(from)
-//   const res = await axios.get(`https://v6.exchangerate-api.com/v6/fa70421a4a77ced555e79d5a/latest/${toCurrency}`)
-//   console.log(res)
-//   if(res){
-//     const rate = res.data.conversion_rates[fromCurrency]
-//     if(rate){
-//     return amount*rate
-//     }else{
-//       return 0
-//     }
-//   }else{
-   
-//     return 0
-    
-//   }
-// }
+
 
 const mapCurrency = (currency) =>{
   switch (currency) {
@@ -711,17 +701,32 @@ const calculateRetainerNumbers = (opps) => {
   // let AllProposed = opps.filter(x=>x.scope==1).reduce(function(total, y) { return total+ (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0)  }, 0)
   // let WonTotalContracted = opps.filter(x=>x.status==4 && x.scope==1).reduce(function(total,y) { return total+ (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0)  }, 0)
 
-  let proposedValue = opps.filter(x=>x.scope==1).reduce(function(total, y) { return total+ (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0)  }, 0)/1000
-  let WonTotalContracted = opps.filter(x=>x.status==4  && x.scope==1).reduce(function(total,y) { return total+ (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0)  }, 0)/1000
+  let proposedValue = Math.round(opps.filter(x=>x.scope==1).reduce(function(total, y) { return total+ (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,currency) : 0)  }, 0)/1000)
 
+  let WonTotalContracted = Math.round(opps.filter(x=>x.status==4  && x.scope==1).reduce(function(total,y) { return total+ (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,currency) : 0)  }, 0)/1000)
+
+  let discountRate = Math.round(100-((WonTotalContracted/proposedValue)*100))
+
+  proposedValue = proposedValue.toLocaleString('en-US', {
+    style: 'currency',
+    currency: mapCurrency(currency),
+  })
+
+  WonTotalContracted = WonTotalContracted.toLocaleString('en-US', {
+    style: 'currency',
+    currency: mapCurrency(currency),
+  })
 
   setNumberOfContracts(opps.filter(x=>x.scope==1).length)
   setProposedValue(proposedValue)
-  setDiscountRate(`${Math.round((WonTotalContracted/proposedValue)*100)}`)
+  setDiscountRate(discountRate)
   setContractedValue(WonTotalContracted)
 
-  setRunRate(opps.filter(x=>x.status==4  && x.scope==1).reduce(function(total,y) { return total+ (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency)/y.retainerValidatity : 0) }, 0)/1000)
-  setRunWay(Math.round(opps.filter(x=>x.scope==1).reduce(function(total,y) { return total+ (y.retainerValidatity ? y.retainerValidatity : 0)  }, 0) / opps.filter(x=>x.scope==1).length))
+  setRunRate(Math.round(opps.filter(x=>x.status==4  && x.scope==1).reduce(function(total,y) { return total+ (y.finalContractValue & y.retainerValidatity ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,currency)/y.retainerValidatity : 0) }, 0)/1000).toLocaleString('en-US', {
+    style: 'currency',
+    currency: mapCurrency(currency),
+  }))
+  setRunWay(Math.round(opps.filter(x=>x.status==4  && x.scope==1).reduce(function(total,y) { return total+ (y.retainerValidatity ? y.retainerValidatity : 0)  }, 0) / opps.filter(x=>x.status==4  && x.scope==1).length))
 
 
 }
@@ -765,21 +770,52 @@ const calculateProjectsFunnel = (opps) =>{
   setWinLossPercent(Math.round((opps.filter(x=>x.status==4 &&x.scope==0).length/opps.filter(x=>x.status==5 &&x.scope==0).length)*100))
 
 
-  let AllProposed = opps.filter(x=>x.scope==0).reduce(function(total, y) { return total + (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0)  }, 0)
+  //let AllProposed = opps.filter(x=>x.scope==0).reduce(function(total, y) { return total + (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,currency) : 0)  }, 0)
  
-  let WonTotalProposal =  opps.filter(x=>x.status==4 && x.scope==0).reduce(function(total,y) { return total + (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,toCurrency) : 0)  }, 0)
-  let WonTotalContracted = opps.filter(x=>x.status==4 && x.scope==0).reduce(function(total, y) { return total +  (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,toCurrency) : 0)  },0)
+  let WonTotalProposal =  Math.round(opps.filter(x=>x.status==4 && x.scope==0).reduce(function(total,y) { return total + (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,currency) : 0)  }, 0))
+  let WonTotalContracted = Math.round(opps.filter(x=>x.status==4 && x.scope==0).reduce(function(total, y) { return total +  (y.finalContractValue ? convertCurrency(y.finalContractValue,y.finalContractValueCurrency,currency) : 0)  },0))
 
-  console.log(WonTotalContracted)
+  let approvedTotalProposal =  Math.round(opps.filter(x=>x.status==3 && x.scope==0).reduce(function(total,y) { return total + (y.firstProposalValue ? convertCurrency(y.firstProposalValue,y.firstProposalValueCurrency,currency) : 0 )  }, 0))
+  let approvedTotalContracted = Math.round(opps.filter(x=>x.status==3 && x.scope==0).reduce(function(total, y) { return total +  (y.currentProposalValue ? convertCurrency(y.currentProposalValue,y.currentProposalValueCurrency,currency) : 0)  },0))
 
-  setAvgWon(WonTotalContracted/1000)
-  setAvgApproved("-")
+
+  let avgDiscountWon = Math.round(100-((WonTotalContracted/WonTotalProposal)*100))
+
+  let avgDiscountApproved = Math.round(100-((approvedTotalContracted/approvedTotalProposal)*100))
+
+  WonTotalProposal = WonTotalProposal.toLocaleString('en-US', {
+    style: 'currency',
+    currency: mapCurrency(currency),
+  })
+
+  
+
+  let avgWon =  Math.round(WonTotalContracted/1000).toLocaleString('en-US', {
+    style: 'currency',
+    currency: mapCurrency(currency),
+  })
+
+  let avgApproved =  Math.round(approvedTotalContracted/1000).toLocaleString('en-US', {
+    style: 'currency',
+    currency: mapCurrency(currency),
+  })
+
+  WonTotalContracted = WonTotalContracted.toLocaleString('en-US', {
+    style: 'currency',
+    currency: mapCurrency(currency),
+  })
+
+  
+
+
+  setAvgWon(avgWon)
+  setAvgApproved(avgApproved)
 
   // setAvgDiscountApproved(Math.round((WonTotalContracted/WonTotalProposal)*100))
   // setAvgDiscountWon(Math.round((AllProposed/WonTotalContracted)*100))
 
-  setAvgDiscountApproved("0")
-  setAvgDiscountWon(Math.round((WonTotalContracted/WonTotalProposal)*100))
+  setAvgDiscountApproved(avgDiscountApproved)
+  setAvgDiscountWon(avgDiscountWon)
 
 
 }
