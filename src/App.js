@@ -65,85 +65,85 @@ function App() {
           <Route path="main-dashboard" element={<MainDashboard />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','FDBAdmin']} />}>
           <Route path="companies" element={<Companies />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','FDBAdmin']} />}>
           <Route path="line-of-businesses" element={<LineOfBusiness />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','FDBAdmin']} />}>
           <Route path="clients" element={<Clients />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','FDBAdmin']} />}>
           <Route path="milestones" element={<Milestones />} />
           </Route>
 
 
 
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','CommercialAdmin','CommercialEdit']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','CommercialManager','CommercialUser']} />}>
           <Route path="create-opportunity" element={<CreateOpportunity />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','CommercialAdmin','CommercialEdit']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','CommercialManager','CommercialUser']} />}>
           <Route path="progress-opportunity"  element={<ProgressOpportunity />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','CommercialAdmin','CommercialViewFull','CommercialView']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','CommercialManager','CommercialUser']} />}>
           <Route path="opportunities" element={<Opportunities />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','CommercialAdmin','CommercialViewFull']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','CommercialManager']} />}>
           <Route path="commercial-calculations" element={<CommercailCalculations />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','CommercialAdmin','CommercialViewFull']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','CommercialManager']} />}>
           <Route path="commercial-dashboard" element={<CommercialDashboard />} />
           </Route>
 
 
 
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationEdit']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','OperationManager','OperationUser']} />}>
           <Route path="create-project" element={<CreateProject />} />
           </Route>
 
        
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationEdit']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','OperationManager','OperationUser']} />}>
           <Route path="progress-project" element={<ProgressProject />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationViewFull','OperationView']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','OperationManager','OperationUser']} />}>
           <Route path="projects" element={<Projects />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationViewFull']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','OperationManager','OperationUser']} />}>
           <Route path="projects-invoices" element={<ProjectsInvoices />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationViewFull']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','OperationManager']} />}>
           <Route path="operation-calculations" element={<OperationCalculations />} />
           </Route>
 
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationViewFull']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','OperationManager']} />}>
           <Route path="operation-dashboard" element={<OperationDashboard />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationViewFull']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','FinancialManager','FinancialUser']} />}>
           <Route path="finance-invoices" element={<FinanceInvoices />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationViewFull']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','FinancialManager']} />}>
           <Route path="finance-calculations" element={<FinanceCalculations />} />
           </Route>
 
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin','Admin','OperationAdmin','OperationViewFull']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','CompanyAdmin','FinancialManager']} />}>
           <Route path="finance-dashboard" element={<FinanceDashboard />} />
           </Route>
 
@@ -153,7 +153,7 @@ function App() {
           <Route path="assign-roles" element={<AssignRoles />} />
           </Route>
 
-          <Route element={<RequireAuth allowedRoles={['SuperAdmin']} />}>
+          <Route element={<RequireAuth allowedRoles={['SuperAdmin','FDBAdmin']} />}>
           <Route path="assign-company" element={<AssignCompany />} />
           </Route>
 

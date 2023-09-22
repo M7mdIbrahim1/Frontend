@@ -91,11 +91,11 @@ function Clients() {
           const formData = new FormData()
           formData.append("formFile",file)
           formData.append("fileName",`client${clientEditId}/${file.name}`)
-          const res = await axios.post("https://leveragefc-backend.onrender.com/Upload", formData)
+          const res = await axios.post("http://3.75.83.162/api/Upload", formData)
           //await upload(formData).unwrap()
           setClientFileList([...clientFileList,{uid:file.uid, 
             name:file.name, 
-            url:`https://leveragefc-backend.onrender.com/Download/?fileName=client${clientEditId}/${file.name}`,
+            url:`http://3.75.83.162/api/Download/?fileName=client${clientEditId}/${file.name}`,
             status:"done",
           }])
         },

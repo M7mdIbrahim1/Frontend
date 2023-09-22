@@ -32,7 +32,7 @@ const Nav = () => {
                  
                   <div className="accordion accordion-flush" id="accordionFlushExample">
                  
-                  {allowedRoles(['SuperAdmin','Admin']) ? (
+                  {allowedRoles(['SuperAdmin','CompanyAdmin','FDBAdmin']) ? (
                     <div className="accordion-item">
                        <h2 className="accordion-header" id="flush-headingOne">
                         <button className="accordion-button collapsed  py-2" type="button" data-mdb-toggle="collapse" data-mdb-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
@@ -43,18 +43,22 @@ const Nav = () => {
                        <div id="flush-collapseOne" className="accordion-collapse collapse" aria-labelledby="flush-headingOne" data-mdb-parent="#accordionFlushExample">
 
                        <div className="accordion-body ms-3"> 
+
+                       {allowedRoles(['SuperAdmin','FDBAdmin']) ? (
                       <div className="mb-2">
                       <a href="/companies" className="list-group-item-action" >
                       <i className="fas fa-building fa-fw me-2"></i><span>Companies</span>
                       </a>
-                      </div>
+                      </div>) :null}
 
+                      
                       <div className="mb-2">
                       <a href="/line-of-businesses" className="list-group-item-action" >
                       <i className="fas fa-briefcase fa-fw me-2"></i><span>Line of businesses</span>
                       </a>
                       </div>
 
+                      {allowedRoles(['SuperAdmin','CompanyAdmin']) ? (<>
                       <div className="mb-2">
                       <a href="/clients" className="list-group-item-action" >
                       <i className="fas fa-user-tie fa-fw me-2"></i><span>Clients</span>
@@ -65,7 +69,7 @@ const Nav = () => {
                       <a href="/milestones" className="list-group-item-action" >
                       <i className="fas fa-bars fa-fw me-2"></i><span>Milestones</span>
                       </a>
-                      </div>
+                      </div></>):null}
 
                       
                       </div>
@@ -73,7 +77,7 @@ const Nav = () => {
                   
                  </div>) : null}
 
-                  {allowedRoles(['SuperAdmin','Admin','CommercialAdmin','CommercialViewFull','CommercialView','CommercialEdit']) ? (
+                  {allowedRoles(['SuperAdmin','CompanyAdmin','CommercialManager','CommercialUser']) ? (
                  <div className="accordion-item">
                        <h2 className="accordion-header" id="flush-headingTwo">
                         <button className="accordion-button collapsed  py-2" type="button" data-mdb-toggle="collapse" data-mdb-target="#flush-collapseTwo" aria-expanded="true" aria-controls="flush-collapseTwo">
@@ -85,14 +89,14 @@ const Nav = () => {
                       
                       <div className="accordion-body ms-3"> 
 
-                      {allowedRoles(['SuperAdmin','Admin','CommercialAdmin','CommercialEdit']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','CommercialManager','CommercialUser']) ? (
                       <div className="mb-2">
                       <a href="/create-opportunity" className="list-group-item-action" >
                       <i className="fas fa-calendar fa-fw me-2"></i><span>Create Opportunity</span>
                       </a>
                       </div>) : null}
 
-                      {allowedRoles(['SuperAdmin','Admin','CommercialAdmin','CommercialEdit']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','CommercialManager','CommercialUser']) ? (
                       <div className="mb-2">
                       <a href="/progress-opportunity" className="list-group-item-action" >
                       <i className="fas fa-pen fa-fw me-2"></i><span>Progress Opportunity</span>
@@ -105,7 +109,7 @@ const Nav = () => {
                       </a>
                       </div>
 
-                      {allowedRoles(['SuperAdmin','Admin','CommercialAdmin','CommercialViewFull']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','CommercialManager']) ? (
                       <div className="mb-2">
                       <a href="/commercial-calculations" className="list-group-item-action" >
                       <i className="fas fa-calculator fa-fw me-2"></i><span>Calculations</span>
@@ -113,7 +117,7 @@ const Nav = () => {
                       </div>) : null}
 
 
-                      {allowedRoles(['SuperAdmin','Admin','CommercialAdmin','CommercialViewFull']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','CommercialManager']) ? (
                       <div className="mb-2">
                       <a href="/commercial-dashboard" className="list-group-item-action" >
                       <i className="fas fa-tachometer-alt fa-fw me-2"></i><span>Dashboard</span>
@@ -127,7 +131,7 @@ const Nav = () => {
                     </div>
                   </div>) : null}
 
-                  {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationViewFull','OperationView','OperationEdit']) ? (
+                  {allowedRoles(['SuperAdmin','CompanyAdmin','OperationManager','OperationUser']) ? (
                   <div className="accordion-item">
                        <h2 className="accordion-header" id="flush-headingThree">
                         <button className="accordion-button collapsed  py-2" type="button" data-mdb-toggle="collapse" data-mdb-target="#flush-collapseThree" aria-expanded="true" aria-controls="flush-collapseThree">
@@ -139,14 +143,14 @@ const Nav = () => {
                         
                        <div className="accordion-body ms-3"> 
 
-                       {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationEdit']) ? (
+                       {allowedRoles(['SuperAdmin','CompanyAdmin','OperationManager','OperationUser']) ? (
                       <div className="mb-2">
                       <a href="/create-project" className="list-group-item-action" >
                       <i className="fas fa-calendar fa-fw me-2"></i><span>Create Project</span>
                       </a>
                       </div>) : null}
                       
-                      {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationEdit']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','OperationManager','OperationUser']) ? (
                       <div className="mb-2">
                       <a href="/progress-project" className="list-group-item-action" >
                       <i className="fas fa-pen fa-fw me-2"></i><span>Progress Project</span>
@@ -159,21 +163,21 @@ const Nav = () => {
                       </a>
                       </div>
 
-                      {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationViewFull']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','OperationManager','OperationUser']) ? (
                       <div className="mb-2">
                       <a href="/projects-invoices" className="list-group-item-action" >
                       <i className="fas fa-money-bill fa-fw me-2"></i><span>Project Invoices</span>
                       </a>
                       </div>):null}
 
-                      {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationViewFull']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','OperationManager']) ? (
                       <div className="mb-2">
                       <a href="/operation-calculations" className="list-group-item-action" >
                       <i className="fas fa-calculator fa-fw me-2"></i><span>Calculations</span>
                       </a>
                       </div>):null}
 
-                      {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationViewFull']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','OperationManager']) ? (
                       <div className="mb-2">
                       <a href="/operation-dashboard" className="list-group-item-action" >
                       <i className="fas fa-tachometer-alt fa-fw me-2"></i><span>Dashboard</span>
@@ -184,7 +188,7 @@ const Nav = () => {
                     </div>
                   </div>): null}
 
-                  {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationViewFull','OperationView','OperationEdit']) ? (
+                  {allowedRoles(['SuperAdmin','CompanyAdmin','FinancialManager','FinancialUser']) ? (
                   <div className="accordion-item">
                        <h2 className="accordion-header" id="flush-headingFive">
                         <button className="accordion-button collapsed  py-2" type="button" data-mdb-toggle="collapse" data-mdb-target="#flush-collapseFive" aria-expanded="true" aria-controls="flush-collapseFive">
@@ -200,21 +204,21 @@ const Nav = () => {
                       
                     
 
-                      {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationViewFull']) ? (
+                       {allowedRoles(['SuperAdmin','CompanyAdmin','FinancialManager','FinancialUser']) ? (
                       <div className="mb-2">
                       <a href="/finance-invoices" className="list-group-item-action" >
                       <i className="fas fa-money-bill fa-fw me-2"></i><span>Finance Invoices</span>
                       </a>
                       </div>):null}
 
-                      {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationViewFull']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','FinancialManager']) ? (
                       <div className="mb-2">
                       <a href="/finance-calculations" className="list-group-item-action" >
                       <i className="fas fa-calculator fa-fw me-2"></i><span>Calculations</span>
                       </a>
                       </div>):null}
 
-                      {allowedRoles(['SuperAdmin','Admin','OperationAdmin','OperationViewFull']) ? (
+                      {allowedRoles(['SuperAdmin','CompanyAdmin','FinancialManager']) ? (
                       <div className="mb-2">
                       <a href="/finance-dashboard" className="list-group-item-action" >
                       <i className="fas fa-tachometer-alt fa-fw me-2"></i><span>Dashboard</span>
@@ -227,7 +231,7 @@ const Nav = () => {
 
                   
 
-                  {allowedRoles(['SuperAdmin','Admin']) ? (
+                  {allowedRoles(['SuperAdmin','FDBAdmin']) ? (
                   <div className="accordion-item">
                        <h2 className="accordion-header" id="flush-headingFour">
                         <button className="accordion-button collapsed  py-2" type="button" data-mdb-toggle="collapse" data-mdb-target="#flush-collapseFour" aria-expanded="true" aria-controls="flush-collapseFour">
