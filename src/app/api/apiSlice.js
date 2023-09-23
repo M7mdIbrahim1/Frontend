@@ -6,7 +6,6 @@ const baseQuery = fetchBaseQuery({
     baseUrl: process.env.REACT_APP_BASE_URL,
     credentials: 'include',
     prepareHeaders: (headers, { getState }) => {
-        console.log(process.env.REACT_APP_BASE_URL)
         const token = getState().auth.token
        
         if (token) {
