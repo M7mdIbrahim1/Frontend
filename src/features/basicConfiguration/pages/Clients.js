@@ -91,11 +91,11 @@ function Clients() {
           const formData = new FormData()
           formData.append("formFile",file)
           formData.append("fileName",`client${clientEditId}/${file.name}`)
-          const res = await axios.post("http://3.75.83.162/api/Upload", formData)
+          const res = await axios.post(`${process.env.REACT_APP_BASE_URL}/Upload`, formData)
           //await upload(formData).unwrap()
           setClientFileList([...clientFileList,{uid:file.uid, 
             name:file.name, 
-            url:`http://3.75.83.162/api/Download/?fileName=client${clientEditId}/${file.name}`,
+            url:`${process.env.REACT_APP_BASE_URL}/Download/?fileName=client${clientEditId}/${file.name}`,
             status:"done",
           }])
         },

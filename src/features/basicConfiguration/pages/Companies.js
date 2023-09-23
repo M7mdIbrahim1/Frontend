@@ -102,11 +102,11 @@ function Companies() {
           const formData = new FormData()
           formData.append("formFile",file)
           formData.append("fileName",`company${companyEditId}/${file.name}`)
-          const res = await axios.post("http://3.75.83.162/api/Upload", formData)
+          const res = await axios.post(`${process.env.REACT_APP_BASE_URL}/Upload`, formData)
           //await upload(formData).unwrap()
           setCompanyFileList([...companyFileList,{uid:file.uid, 
             name:file.name, 
-            url:`http://3.75.83.162/api/Download/?fileName=company${companyEditId}/${file.name}`,
+            url:`${process.env.REACT_APP_BASE_URL}/Download/?fileName=company${companyEditId}/${file.name}`,
             status:"done",
           }])
         },
