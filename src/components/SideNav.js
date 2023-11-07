@@ -92,7 +92,7 @@ function SideNav({darkTheme}) {
             allowedRoles(['SuperAdmin','FDBAdmin','CompanyAdmin','FinancialManager']) ?getItem('Calculations', '18', <Link to="/finance-calculations"><CalculatorOutlined /></Link>):null,
             allowedRoles(['SuperAdmin','FDBAdmin','CompanyAdmin','FinancialManager'])?getItem('Dashboard', '19', <Link to="/finance-dashboard"><AreaChartOutlined /></Link>):null,
         ]) : null,
-        allowedRoles(['SuperAdmin','FDBAdmin','CompanyAdmin'])? getItem('Users', 'sub5',<TeamOutlined />,[
+        allowedRoles(['SuperAdmin','FDBAdmin'])? getItem('Users', 'sub5',<TeamOutlined />,[
            getItem('Assign Users', '20', <Link to="/assign-roles"><UserAddOutlined /></Link>),
            allowedRoles(['SuperAdmin','FDBAdmin']) ? getItem('Assign Company', '21', <Link to="/assign-company"><UserSwitchOutlined /></Link>):null,
            getItem('Users', '22', <Link to="/users-list"><UserOutlined /></Link>),
